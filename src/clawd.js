@@ -6,7 +6,7 @@ import { heartTexture } from './particles.js';
 import { clamp, damp, rand, save, state } from './state.js';
 import { canvasTexture, scene, standard } from './world.js';
 
-export const BODY_WIDTH = 2.4;
+const BODY_WIDTH = 2.4;
 export const BODY_HEIGHT = 1.5;
 export const BODY_DEPTH = 1.3;
 export const LEG_LENGTH = 0.42;

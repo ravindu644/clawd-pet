@@ -57,7 +57,6 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = PCFSoftShadowMap;
 renderer.toneMapping = ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
-renderer.outputColorSpace = SRGBColorSpace;
 document.getElementById('stage').appendChild(renderer.domElement);
 
 export const canvas = renderer.domElement;
@@ -153,7 +152,7 @@ stars.renderOrder = -9;
 stars.frustumCulled = false;
 scene.add(stars);
 
-export const glowTexture = canvasTexture((g) => {
+const glowTexture = canvasTexture((g) => {
   const gradient = g.createRadialGradient(64, 64, 0, 64, 64, 64);
   gradient.addColorStop(0, 'rgba(255,255,255,1)');
   gradient.addColorStop(0.22, 'rgba(255,255,255,.9)');
@@ -200,7 +199,6 @@ Object.assign(sunLight.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, 
 sunLight.shadow.camera.updateProjectionMatrix();
 sunLight.shadow.bias = -4e-4;
 sunLight.shadow.normalBias = 0.02;
-sunLight.shadow.radius = 5;
 scene.add(sunLight);
 scene.add(sunLight.target);
 const backLight = new DirectionalLight(0xffcfb3, 0.9);
@@ -274,27 +272,27 @@ scene.add(lamp);
 
 // Fireflies
 
+const fireflyGroup = new Group();
+scene.add(fireflyGroup);
 const fireflies = [];
 for (let i = 0; i < 14; i++) {
   const sprite = new Sprite(new SpriteMaterial({ map: glowTexture, color: 0xd9f27a, blending: AdditiveBlending, transparent: true, depthWrite: false, opacity: 0, fog: false }));
   sprite.scale.setScalar(0.24);
-  scene.add(sprite);
+  fireflyGroup.add(sprite);
   fireflies.push({ sprite, angle: rand(0, 6.28), radius: rand(2.8, 5), height: rand(0.3, 1.8), speed: rand(0.08, 0.25), phase: rand(0, 6) });
 }
 
 export function updateFireflies() {
-  if (state.night > 0.02) {
-    for (const fly of fireflies) {
-      const angle = fly.angle + state.time * fly.speed;
-      fly.sprite.position.set(
-        Math.cos(angle) * fly.radius,
-        fly.height + Math.sin(state.time * 1.3 + fly.phase) * 0.3,
-        Math.sin(angle) * fly.radius * 0.9,
-      );
-      fly.sprite.material.opacity = state.night * (0.45 + 0.55 * Math.max(0, Math.sin(state.time * 2.5 + fly.phase)));
-    }
-  } else {
-    for (const fly of fireflies) fly.sprite.material.opacity = 0;
+  fireflyGroup.visible = state.night > 0.02;
+  if (!fireflyGroup.visible) return;
+  for (const fly of fireflies) {
+    const angle = fly.angle + state.time * fly.speed;
+    fly.sprite.position.set(
+      Math.cos(angle) * fly.radius,
+      fly.height + Math.sin(state.time * 1.3 + fly.phase) * 0.3,
+      Math.sin(angle) * fly.radius * 0.9,
+    );
+    fly.sprite.material.opacity = state.night * (0.45 + 0.55 * Math.max(0, Math.sin(state.time * 2.5 + fly.phase)));
   }
 }
 
@@ -372,7 +370,6 @@ export function updateDayCycle(hour) {
 export function centerSkyOnCamera() {
   sun.position.copy(camera.position).addScaledVector(sunDir, 55);
   moon.position.copy(camera.position).addScaledVector(moonDir, 55);
-  sky.position.copy(camera.position);
   stars.position.copy(camera.position);
 }
 

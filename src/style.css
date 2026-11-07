@@ -1,7 +1,7 @@
 @font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:500;font-display:swap;src:url(./fonts/jetbrains-mono-500.woff2) format('woff2')}
 @font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;font-display:swap;src:url(./fonts/jetbrains-mono-700.woff2) format('woff2')}
 @font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:800;font-display:swap;src:url(./fonts/jetbrains-mono-800.woff2) format('woff2')}
-:root{--cream:#F4EFE6;--ink:#2B2118;--muted:#8A7B6C;--orange:#D97757;--orange-d:#B85E40;--card:rgba(255,252,247,.86)}
+:root{--ink:#2B2118;--muted:#8A7B6C;--orange:#D97757;--orange-d:#B85E40;--card:rgba(255,252,247,.86)}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;background:#BBD6F0;color:var(--ink);
   font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}

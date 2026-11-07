@@ -2,14 +2,11 @@
 // This module imports no game code, so anything can depend on it.
 import { MathUtils, Vector2, Vector3 } from 'three';
 
-export const SAVE_KEY = 'clawd-pet-v1';
+const SAVE_KEY = 'clawd-pet-v1';
 
-export const rand = (min = 0, max = 1) => min + Math.random() * (max - min);
+export const { clamp, damp, randFloat: rand, smoothstep } = MathUtils;
 export const pick = (list) => list[Math.floor(Math.random() * list.length)];
-export const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-export const damp = (from, to, rate, dt) => from + (to - from) * (1 - Math.exp(-rate * dt));
 export const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
-export const smoothstep = MathUtils.smoothstep;
 export const wrapAngle = (angle) => {
   angle = (angle + Math.PI) % (Math.PI * 2);
   if (angle < 0) angle += Math.PI * 2;

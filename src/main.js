@@ -13,21 +13,15 @@ initUI();
 initPhoto();
 initInput();
 
-window.clawdDebug = {
-  quest: startQuest,
-  shake,
-  setHour: (hour) => {
-    state.autoTime = false;
-    state.manualHour = hour;
-    syncTimeControls();
-  },
-};
+function setHour(hour) {
+  state.autoTime = false;
+  state.manualHour = hour;
+  syncTimeControls();
+}
 
 // Test hooks. esbuild removes this block from the shipped build.
-if (DEV) window.__clawd = { body, camera, controls, drawGlyph, GLYPH_FONT, renderer, root, save, scene, setMode, shake, startQuest, state, sunLight, walkTo, yawGroup, zzzTexture };
+if (DEV) window.__clawd = { setHour, body, camera, controls, drawGlyph, GLYPH_FONT, renderer, root, save, scene, setMode, shake, startQuest, state, sunLight, walkTo, yawGroup, zzzTexture };
 
-setInterval(persist, 4000);
-addEventListener('pagehide', persist);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) persist();
 });

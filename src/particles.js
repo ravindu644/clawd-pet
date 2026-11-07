@@ -44,7 +44,6 @@ export const heartTexture = canvasTexture((g) => {
 export const zzzTexture = glyph('z', '#7A6A5A');
 export const noteTexture = glyph('♪', '#D97757');
 export const bangTexture = glyph('!', '#2B2118');
-glyph('?', '#2B2118'); // Unused, kept until the parity checks finish because it shifts the random sequence.
 export const starTexture = canvasTexture((g) => {
   g.fillStyle = '#F2C14E';
   g.strokeStyle = '#2B2118';
@@ -89,7 +88,7 @@ export function spawnSprite(
 }
 
 const crumbGeometry = new BoxGeometry(0.07, 0.07, 0.07);
-export const cookieCrumb = standard(0xb67a3e, { roughness: 0.9 });
+const cookieCrumb = standard(0xb67a3e, { roughness: 0.9 });
 export const dustCrumb = standard(0xe2d3bc, { roughness: 1 });
 
 export function spawnCrumb(position, material = cookieCrumb, spread = 1) {

@@ -26,7 +26,7 @@ export function setMode(mode) {
   state.modeTime = 0;
 }
 
-export function joltHat(force) {
+function joltHat(force) {
   state.hatJolt.vx += rand(-force, force);
   state.hatJolt.vz += rand(-force, force);
 }
@@ -94,7 +94,7 @@ export function walkTo(x, z, speed = 1.4, stop = 0.05) {
   state.walkStop = stop;
 }
 
-export function cancelQuest() {
+function cancelQuest() {
   if (QUESTS.includes(state.mode)) {
     tripPivot.rotation.x = Math.min(tripPivot.rotation.x, 0.6);
     setMode('idle');

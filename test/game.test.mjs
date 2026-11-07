@@ -102,7 +102,7 @@ test('the shipped file loads offline, requests nothing else and throws nothing',
   await page.waitForFunction(() => document.getElementById('bubble').classList.contains('show'));
   assert.deepEqual(errors, []);
   assert.deepEqual(requests.filter((url) => !url.startsWith('data:')), [SHIPPED_BUILD]);
-  assert.equal(await page.evaluate(() => '__clawd' in window), false);
+  assert.equal(await page.evaluate(() => '__clawd' in window || 'clawdDebug' in window), false);
   await context.close();
 });
 

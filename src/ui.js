@@ -80,7 +80,7 @@ function makeChips(container, items, selected, onPick) {
     chip.dataset.id = id;
     chip.innerHTML = `<b>${icon}</b>${label}`;
     chip.addEventListener('click', () => {
-      container.querySelectorAll('.chip').forEach((other) => other.classList.toggle('sel', other === chip));
+      selectChip(container, id);
       onPick(id);
     });
     container.appendChild(chip);
@@ -102,7 +102,6 @@ function chooseHat(id, quiet) {
   save.hat = id;
   wearHat(id);
   persist();
-  selectChip($('hatChips'), id);
   if (!quiet) reactToOutfit(HAT_LINES[id]);
 }
 
@@ -110,7 +109,6 @@ function chooseFace(id, quiet) {
   save.face = id;
   wearFace(id);
   persist();
-  selectChip($('faceChips'), id);
   if (!quiet) reactToOutfit(FACE_LINES[id]);
 }
 
@@ -130,28 +128,20 @@ export function setMotionStatus(text) {
   $('motionStatus').textContent = text || (state.motionSeen ? 'active ✓ shake your phone!' : 'not detected yet');
 }
 
-function requestMotion() {
-  const report = () =>
-    setMotionStatus(state.motionSeen ? null : 'no sensor reachable here. The viewer may block it; the offline file on your phone can use it.');
+async function requestMotion() {
+  setMotionStatus('listening…');
   try {
-    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-      DeviceMotionEvent.requestPermission()
-        .then((answer) => {
-          if (answer === 'granted') {
-            setMotionStatus('listening…');
-            setTimeout(report, 1500);
-          } else {
-            setMotionStatus('permission denied');
-          }
-        })
-        .catch(() => setMotionStatus('blocked here. Try the offline file.'));
-    } else {
-      setMotionStatus('listening…');
-      setTimeout(report, 1500);
+    // iOS asks for permission first. Other browsers just start sending motion events.
+    const ask = window.DeviceMotionEvent && DeviceMotionEvent.requestPermission;
+    if (ask && (await DeviceMotionEvent.requestPermission()) !== 'granted') {
+      setMotionStatus('permission denied');
+      return;
     }
   } catch {
-    setMotionStatus('blocked here. Try the offline file.');
+    setMotionStatus('motion sensors are blocked here');
+    return;
   }
+  setTimeout(() => setMotionStatus(state.motionSeen ? null : 'no motion sensor found on this device'), 1500);
 }
 
 const POSES = [
@@ -196,8 +186,12 @@ export function initUI() {
   makeChips($('hatChips'), HATS, save.hat, (id) => chooseHat(id));
   makeChips($('faceChips'), FACES, save.face, (id) => chooseFace(id));
   $('randomFit').addEventListener('click', () => {
-    chooseHat(pick(HATS.slice(1))[0], true);
-    chooseFace(pick(FACES)[0], true);
+    const hat = pick(HATS.slice(1))[0];
+    const face = pick(FACES)[0];
+    chooseHat(hat, true);
+    chooseFace(face, true);
+    selectChip($('hatChips'), hat);
+    selectChip($('faceChips'), face);
     reactToOutfit(pick(['new fit who dis', '✨ drip ✨', 'how do i look?', 'fashion icon']));
   });
 

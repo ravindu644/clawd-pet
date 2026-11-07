@@ -6,18 +6,6 @@ import { formatHour, persist } from './ui.js';
 import { camera, canvas as stage, renderer, scene } from './world.js';
 
 const $ = (id) => document.getElementById(id);
-let photoCanvas = null;
-let downloads = null;
-
-function roundedRect(g, x, y, width, height, radius) {
-  g.beginPath();
-  g.moveTo(x + radius, y);
-  g.arcTo(x + width, y, x + width, y + height, radius);
-  g.arcTo(x + width, y + height, x, y + height, radius);
-  g.arcTo(x, y + height, x, y, radius);
-  g.arcTo(x, y, x + width, y, radius);
-  g.closePath();
-}
 
 // The speech bubble is DOM, so it has to be redrawn by hand to appear in the photo.
 function drawBubble(g, scale) {
@@ -30,12 +18,14 @@ function drawBubble(g, scale) {
   const height = rect.height * scale;
   g.save();
   g.fillStyle = '#2B2118';
-  roundedRect(g, x + 3 * scale, y + 3 * scale, width, height, 12 * scale);
+  g.beginPath();
+  g.roundRect(x + 3 * scale, y + 3 * scale, width, height, 12 * scale);
   g.fill();
   g.fillStyle = '#fff';
   g.strokeStyle = '#2B2118';
   g.lineWidth = 2 * scale;
-  roundedRect(g, x, y, width, height, 12 * scale);
+  g.beginPath();
+  g.roundRect(x, y, width, height, 12 * scale);
   g.fill();
   g.stroke();
   g.beginPath();
@@ -156,11 +146,9 @@ export function takePhoto() {
   const framed = state.frame === 'polaroid' ? polaroidFrame(shot, scale, date) : state.frame === 'retro' ? retroFrame(shot, date) : cleanFrame(shot, scale);
   try {
     state.photoUrl = framed.toDataURL('image/png');
-    photoCanvas = framed;
   } catch {
     return;
   }
-  $('saveNote').textContent = 'You can also long-press (or right-click) the photo to save it.';
   $('photoImg').src = state.photoUrl;
 
   const flash = $('flash');
@@ -179,20 +167,6 @@ export function takePhoto() {
 
 function savePhoto() {
   const filename = `clawd-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.png`;
-  if (downloads && photoCanvas) {
-    photoCanvas.toBlob((blob) => {
-      if (!blob) return;
-      downloads
-        .save({ filename, data: blob })
-        .then(() => {
-          $('saveNote').textContent = 'saved ✓';
-        })
-        .catch((error) => {
-          if (!(error && error.code === 'declined')) $('saveNote').textContent = "Couldn't save here. Long-press (or right-click) the photo to save it.";
-        });
-    }, 'image/png');
-    return;
-  }
   try {
     const link = document.createElement('a');
     link.href = state.photoUrl;
@@ -210,14 +184,4 @@ export function initPhoto() {
   });
   $('closePhoto').addEventListener('click', () => $('modal').classList.remove('show'));
   $('savePhoto').addEventListener('click', savePhoto);
-  try {
-    if (window.claude && window.claude.use) {
-      window.claude
-        .use('downloads')
-        .then((api) => {
-          downloads = api;
-        })
-        .catch(() => {});
-    }
-  } catch {}
 }
