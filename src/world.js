@@ -335,17 +335,21 @@ export function updateDayCycle(hour, clawdPosition) {
   skyLight.intensity = 1.15 * state.day + 1.5 * state.night;
   backLight.intensity = 0.9 * state.day + 0.25 * state.night;
 
-  sun.position.copy(camera.position).addScaledVector(sunDir, 55);
   sun.material.opacity = smoothstep(sunDir.y, -0.08, 0.05);
   sun.material.color.copy(scratchColor.set('#FFF1D6').lerp(SUNSET, lowSun));
-  moon.position.copy(camera.position).addScaledVector(moonDir, 55);
   moon.material.opacity = smoothstep(moonDir.y, -0.05, 0.1) * smoothstep(state.night, 0.2, 0.8);
   starMaterial.opacity = smoothstep(state.night, 0.4, 1) * 0.9;
   lampLight.intensity = state.night * 18;
   shadeMaterial.emissiveIntensity = state.night * 1.4;
   lampGlow.material.opacity = state.night * 0.85;
+  return hour;
+}
+
+// Runs after the camera has moved for this frame, so the sky can't trail behind it.
+export function centerSkyOnCamera() {
+  sun.position.copy(camera.position).addScaledVector(sunDir, 55);
+  moon.position.copy(camera.position).addScaledVector(moonDir, 55);
   sky.position.copy(camera.position);
   stars.position.copy(camera.position);
-  return hour;
 }
 

@@ -228,7 +228,8 @@ export function updatePose(dt, pose) {
   yawGroup.rotation.z = state.sway;
 
   tripPivot.rotation.x = damp(tripPivot.rotation.x, trip, trip > 0 ? 14 : 4, dt);
-  root.position.y = state.hopHeight + (state.walking ? Math.abs(Math.sin(state.stride)) * 0.06 : 0);
+  state.walkBob = damp(state.walkBob, state.walking ? Math.abs(Math.sin(state.stride)) * 0.06 : 0, 20, dt);
+  root.position.y = state.hopHeight + state.walkBob;
 
   state.nextBlink -= dt;
   state.blinkLeft = Math.max(0, state.blinkLeft - dt);

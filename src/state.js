@@ -84,6 +84,8 @@ export const state = {
   walking: false,
   stride: 0,
   walkYaw: 0,
+  walkBob: 0,
+  targetYaw: 0,
   lastStep: 0,
   followCooldown: 0,
 

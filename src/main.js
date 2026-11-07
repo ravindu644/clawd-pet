@@ -1,13 +1,13 @@
 // Boot and the frame loop.
 import { updatePurr } from './audio.js';
-import { greet, shake, startQuest, updateBehavior } from './behavior.js';
-import { root, updatePose } from './clawd.js';
+import { greet, shake, startQuest, updateBehavior, walkTo } from './behavior.js';
+import { body, root, updatePose, yawGroup } from './clawd.js';
 import { initInput } from './input.js';
 import { updateParticles } from './particles.js';
 import { initPhoto } from './photo.js';
-import { currentHour, damp, state } from './state.js';
+import { currentHour, damp, save, state } from './state.js';
 import { initUI, persist, syncTimeControls, updateHud } from './ui.js';
-import { camera, clock, controls, renderer, scene, updateDayCycle, updateFireflies } from './world.js';
+import { camera, centerSkyOnCamera, clock, controls, renderer, scene, updateDayCycle, updateFireflies } from './world.js';
 
 document.getElementById('loading').remove();
 initUI();
@@ -25,7 +25,7 @@ window.clawdDebug = {
 };
 
 // Test hooks. esbuild removes this block from the shipped build.
-if (DEV) window.__clawd = { camera, controls, greet, renderer, root, save, scene, shake, startQuest, state, yawGroup };
+if (DEV) window.__clawd = { body, camera, controls, renderer, root, save, scene, shake, startQuest, state, walkTo, yawGroup };
 
 setInterval(persist, 4000);
 addEventListener('pagehide', persist);
@@ -53,13 +53,18 @@ function tick(dt) {
   updateFireflies();
   updateParticles(dt);
   updatePurr();
+
+  // Everything drawn relative to the camera comes after this, so nothing lags it by a frame.
   followClawd(dt);
+  controls.update();
+  camera.updateMatrixWorld();
+  body.updateWorldMatrix(true, false);
+  centerSkyOnCamera();
   updateHud(dt, hour);
 }
 
 renderer.setAnimationLoop(() => {
   tick(Math.min(clock.getDelta(), 0.05));
-  controls.update();
   renderer.render(scene, camera);
 });
 

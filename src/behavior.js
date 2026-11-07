@@ -660,7 +660,7 @@ const headPoint = new Vector3();
 const viewPlane = new Plane();
 const scratch = new Vector3();
 
-function updateFacing(dt, canWalk, clingy) {
+function updateFacing(dt, canWalk) {
   const position = root.position;
   const { butterfly, cookie } = state;
   headPoint.set(position.x, LEG_LENGTH + 1, position.z);
@@ -684,7 +684,6 @@ function updateFacing(dt, canWalk, clingy) {
     if (raycaster.ray.intersectPlane(viewPlane, lookPoint)) {
       looking = true;
       yaw = towardCamera + clamp(scratch.subVectors(lookPoint, headPoint).dot(viewRight) * 0.3, -0.7, 0.7);
-      if (!clingy) yaw = wrapAngle(yaw) * 0.7 + state.idleYaw * 0.3;
     }
   }
   if (state.photoMode) yaw = towardCamera;
@@ -692,6 +691,7 @@ function updateFacing(dt, canWalk, clingy) {
   if (state.walkTarget && canWalk) yaw = state.walkYaw;
   if (state.grab) yaw = yawGroup.rotation.y;
   if (state.mode === 'dance') yaw = towardCamera + Math.sin(state.modeTime * Math.PI) * 0.6;
+  state.targetYaw = yaw;
   yawGroup.rotation.y = dampAngle(yawGroup.rotation.y, yaw, state.mode === 'dance' || state.walkTarget ? 6 : 2.6, dt);
 
   let gazeX = state.idleGaze.x;
@@ -948,7 +948,7 @@ export function updateBehavior(dt) {
   updateQuests(dt);
   updateFollow(dt, clingy);
   const canWalk = updateWalk(dt);
-  updateFacing(dt, canWalk, clingy);
+  updateFacing(dt, canWalk);
   const pose = { sway: 0, trip: 0, lean: 0 };
   updateModeAnimation(dt, pose);
   updateCookie(dt);
