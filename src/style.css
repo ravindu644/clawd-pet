@@ -57,7 +57,7 @@ h1{font-size:18px;line-height:24px;font-weight:500}
 #bubble.show{opacity:1}
 
 /* Sheets */
-#scrim{position:fixed;inset:0;background:rgba(10,10,10,.25);opacity:0;pointer-events:none;transition:opacity .25s}
+#scrim{position:fixed;inset:0;background:rgba(10,10,10,.12);opacity:0;pointer-events:none;transition:opacity .25s}
 #scrim.show{opacity:1;pointer-events:auto}
 .sheet{position:fixed;left:50%;bottom:0;width:min(560px,100%);max-height:100%;overflow-y:auto;transform:translate(-50%,110%);transition:transform .32s cubic-bezier(.2,.9,.3,1),background-color .6s,border-color .6s;
   border-bottom:none;border-radius:var(--radius-panel) var(--radius-panel) 0 0;padding:16px 16px max(24px,env(safe-area-inset-bottom))}

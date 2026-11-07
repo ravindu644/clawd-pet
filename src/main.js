@@ -6,7 +6,7 @@ import { initInput } from './input.js';
 import { drawGlyph, GLYPH_FONT, updateParticles, zzzTexture } from './particles.js';
 import { initPhoto } from './photo.js';
 import { currentHour, damp, save, state } from './state.js';
-import { initUI, persist, syncTimeControls, updateHud } from './ui.js';
+import { initUI, persist, syncTimeControls, updateHud, updateViewShift } from './ui.js';
 import { camera, centerSkyOnCamera, clock, controls, renderer, scene, sunLight, updateDayCycle, updateFireflies } from './world.js';
 
 initUI();
@@ -52,6 +52,7 @@ function tick(dt) {
   controls.update();
   camera.updateMatrixWorld();
   body.updateWorldMatrix(true, false);
+  updateViewShift(dt);
   centerSkyOnCamera();
   updateHud(dt, hour);
 }

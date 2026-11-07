@@ -742,3 +742,34 @@ test('the shipped file plays through every feature offline', async () => {
   assert.deepEqual(errors, []);
   await context.close();
 });
+
+test('on a phone, an open wardrobe leaves Clawd in view above it', async () => {
+  const page = await openGame({ viewport: { width: 390, height: 844 }, save: { hat: 'wizard' } });
+  const measure = () =>
+    page.evaluate(() => {
+      const { body, camera } = __clawd;
+      const Vector = camera.position.constructor;
+      const toScreen = (y) => (-body.localToWorld(new Vector(0, y, 0)).project(camera).y * 0.5 + 0.5) * innerHeight;
+      const sheet = document.querySelector('.sheet.open');
+      return {
+        hatTop: toScreen(1.5 + 1.25),
+        feet: toScreen(-0.42),
+        sheetTop: sheet ? innerHeight - sheet.offsetHeight : innerHeight,
+        shift: __clawd.state.viewShift,
+      };
+    });
+  await page.evaluate(() => {
+    __clawd.state.nextFidget = 99;
+    document.getElementById('wearBtn').click();
+    __step(90);
+  });
+  const open = await measure();
+  assert.ok(open.hatTop > 0 && open.feet < open.sheetTop, JSON.stringify(open));
+  await page.evaluate(() => {
+    document.querySelector('#wearSheet [data-close]').click();
+    __step(90);
+  });
+  const closed = await measure();
+  assert.ok(closed.shift < 0.5, `view still shifted by ${closed.shift}`);
+  await page.context().close();
+});

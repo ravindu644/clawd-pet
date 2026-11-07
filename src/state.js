@@ -108,6 +108,7 @@ export const state = {
 
   // Photo mode
   photoMode: false,
+  viewShift: 0,
   pose: 'none',
   frame: 'polaroid',
   jumpPhotoArmed: false,

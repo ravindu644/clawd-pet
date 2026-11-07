@@ -2,11 +2,11 @@
 import { ACESFilmicToneMapping, Vector3, WebGLRenderer } from 'three';
 import { sfx, unlockAudio } from './audio.js';
 import { dismissButterfly, enterPhotoMode, giveTreat, hop, noteActivity, startDance, wake } from './behavior.js';
-import { BODY_HEIGHT, body, wearFace, wearHat, worldPoint } from './clawd.js';
+import { BODY_HEIGHT, body, LEG_LENGTH, wearFace, wearHat, worldPoint } from './clawd.js';
 import { buildFace, buildHat, drawOutfitThumbnail, FACE_LINES, FACES, HAT_LINES, HATS } from './outfits.js';
 import { spawnHearts, spawnSprite, starTexture } from './particles.js';
 import { closePhoto, photoIsOpen } from './photo.js';
-import { clamp, currentHour, friendshipLevel, pick, rand, save, state, writeSave } from './state.js';
+import { clamp, currentHour, damp, friendshipLevel, pick, rand, save, state, writeSave } from './state.js';
 import { camera, skyAccent } from './world.js';
 
 const $ = (id) => document.getElementById(id);
@@ -19,6 +19,8 @@ const timeSlider = $('timeSlider');
 const timeLabel = $('timeLabel');
 const soundButton = $('soundBtn');
 const bubbleAnchor = new Vector3();
+const viewCenter = new Vector3();
+const hud = document.querySelector('.hud');
 
 let hintDismissed = false;
 let clockText = '';
@@ -59,11 +61,12 @@ export const formatHour = (hour) => {
 };
 
 let focusBeforeSheet = null;
+let openedSheet = null;
 
 function openSheet(id) {
   closeSheets();
   focusBeforeSheet = document.activeElement;
-  const sheet = $(id);
+  const sheet = (openedSheet = $(id));
   sheet.classList.add('open');
   sheet.inert = false;
   scrim.classList.add('show');
@@ -72,6 +75,7 @@ function openSheet(id) {
 
 function closeSheets() {
   const wasOpen = scrim.classList.contains('show');
+  openedSheet = null;
   document.querySelectorAll('.sheet').forEach((sheet) => {
     sheet.classList.remove('open');
     sheet.inert = true;
@@ -329,11 +333,29 @@ function currentMood() {
   return 'kinda lonely… pet me?';
 }
 
+const hatHeight = () => (save.hat === 'wizard' ? 1.1 : save.hat === 'party' ? 0.6 : save.hat === 'none' ? 0 : 0.4);
+
+// While a sheet is open, slide the view up so Clawd sits in the strip between the status card and
+// the sheet. Otherwise, on a phone, the wardrobe covers the very outfit being tried on.
+export function updateViewShift(dt) {
+  let target = 0;
+  if (openedSheet) {
+    const top = hud.getBoundingClientRect().bottom;
+    const bottom = innerHeight - openedSheet.offsetHeight;
+    viewCenter.set(0, (BODY_HEIGHT + hatHeight() - LEG_LENGTH) / 2, 0); // Midway from his feet to his hat.
+    body.localToWorld(viewCenter).project(camera);
+    const unshiftedY = (-viewCenter.y * 0.5 + 0.5) * innerHeight + state.viewShift;
+    target = Math.max(0, unshiftedY - (top + bottom) / 2);
+  }
+  state.viewShift = state.calm ? target : damp(state.viewShift, target, 8, dt);
+  if (state.viewShift > 0.5) camera.setViewOffset(innerWidth, innerHeight, 0, state.viewShift, innerWidth, innerHeight);
+  else if (camera.view) camera.clearViewOffset();
+}
+
 export function updateHud(dt, hour) {
   state.bubbleLeft -= dt;
   if (state.bubbleLeft <= 0) bubble.classList.remove('show');
-  const hatHeight = save.hat === 'wizard' ? 1.1 : save.hat === 'party' ? 0.6 : save.hat === 'none' ? 0 : 0.4;
-  bubbleAnchor.set(0, BODY_HEIGHT + 0.55 + hatHeight, 0);
+  bubbleAnchor.set(0, BODY_HEIGHT + 0.55 + hatHeight(), 0);
   body.localToWorld(bubbleAnchor);
   bubbleAnchor.project(camera);
   const pop = 1 + Math.max(0, 0.15 - state.bubbleAge) * 2;
