@@ -40,19 +40,3 @@ Because the character belongs to Anthropic, this repository has no open-source l
 ## Credits
 
 Set in [JetBrains Mono](https://www.jetbrains.com/lp/mono/), under the SIL Open Font License 1.1 (`src/fonts/OFL.txt`). Three.js is MIT licensed.
-
-## Layout
-
-| File | What it holds |
-| --- | --- |
-| `src/main.js` | Boot and the frame loop |
-| `src/state.js` | Shared state, the save file, maths helpers |
-| `src/world.js` | Renderer, camera, sky, rug, props, day cycle |
-| `src/clawd.js` | His body and how it moves each frame |
-| `src/outfits.js` | Hats and face items |
-| `src/behavior.js` | Moods, walking, quests, cookie, butterfly |
-| `src/input.js` | Pointer, keyboard, device motion |
-| `src/ui.js` | HUD, speech bubble, sheets, photo controls |
-| `src/photo.js` | Photo capture and frames |
-| `src/audio.js` | Synthesised sound |
-| `src/particles.js` | Sprites, crumbs, ripples |
