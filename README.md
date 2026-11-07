@@ -13,6 +13,10 @@ npm run build
 
 This writes `dist/clawd.html`, which is not committed. Edit the files in `src/`.
 
+## Play online
+
+Every push to `main` builds the game and publishes it to GitHub Pages at https://ravindu644.github.io/clawd-pet/.
+
 ## Test
 
 ```sh
