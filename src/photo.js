@@ -1,0 +1,223 @@
+// Takes a high-resolution photo of the scene and frames it.
+import { sfx, unlockAudio } from './audio.js';
+import { addBond } from './behavior.js';
+import { currentHour, friendshipLevel, save, state } from './state.js';
+import { formatHour, persist } from './ui.js';
+import { camera, canvas as stage, renderer, scene } from './world.js';
+
+const $ = (id) => document.getElementById(id);
+let photoCanvas = null;
+let downloads = null;
+
+function roundedRect(g, x, y, width, height, radius) {
+  g.beginPath();
+  g.moveTo(x + radius, y);
+  g.arcTo(x + width, y, x + width, y + height, radius);
+  g.arcTo(x + width, y + height, x, y + height, radius);
+  g.arcTo(x, y + height, x, y, radius);
+  g.arcTo(x, y, x + width, y, radius);
+  g.closePath();
+}
+
+// The speech bubble is DOM, so it has to be redrawn by hand to appear in the photo.
+function drawBubble(g, scale) {
+  const bubble = $('bubble');
+  if (!bubble.classList.contains('show')) return;
+  const rect = bubble.getBoundingClientRect();
+  const x = rect.left * scale;
+  const y = rect.top * scale;
+  const width = rect.width * scale;
+  const height = rect.height * scale;
+  g.save();
+  g.fillStyle = '#2B2118';
+  roundedRect(g, x + 3 * scale, y + 3 * scale, width, height, 12 * scale);
+  g.fill();
+  g.fillStyle = '#fff';
+  g.strokeStyle = '#2B2118';
+  g.lineWidth = 2 * scale;
+  roundedRect(g, x, y, width, height, 12 * scale);
+  g.fill();
+  g.stroke();
+  g.beginPath();
+  g.moveTo(x + width / 2 - 7 * scale, y + height - 1 * scale);
+  g.lineTo(x + width / 2, y + height + 8 * scale);
+  g.lineTo(x + width / 2 + 7 * scale, y + height - 1 * scale);
+  g.fill();
+  g.beginPath();
+  g.moveTo(x + width / 2 - 7 * scale, y + height);
+  g.lineTo(x + width / 2, y + height + 8 * scale);
+  g.lineTo(x + width / 2 + 7 * scale, y + height);
+  g.stroke();
+  g.fillStyle = '#2B2118';
+  g.font = `700 ${14 * scale}px "JetBrains Mono", monospace`;
+  g.textBaseline = 'middle';
+  g.textAlign = 'center';
+  g.fillText(bubble.textContent, x + width / 2, y + height / 2 + 1 * scale);
+  g.restore();
+}
+
+function blankCanvas(width, height) {
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(width);
+  canvas.height = Math.round(height);
+  return canvas;
+}
+
+const font = (weight, size) => `${weight} ${size}px "JetBrains Mono", monospace`;
+
+function polaroidFrame(shot, scale, date) {
+  const side = Math.round(Math.min(innerWidth, innerHeight) * 0.9 * scale);
+  const cropX = (shot.width - side) / 2;
+  const cropY = (shot.height - side) / 2;
+  const border = Math.round(side * 0.06);
+  const caption = Math.round(side * 0.24);
+  const frame = blankCanvas(side + border * 2, side + border + caption);
+  const g = frame.getContext('2d');
+  g.fillStyle = '#FFFDF8';
+  g.fillRect(0, 0, frame.width, frame.height);
+  g.drawImage(shot, cropX, cropY, side, side, border, border, side, side);
+  g.strokeStyle = 'rgba(43,33,24,.18)';
+  g.lineWidth = Math.max(2, side * 0.003);
+  g.strokeRect(border, border, side, side);
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillStyle = '#2B2118';
+  g.font = font(800, side * 0.06);
+  g.fillText('clawd ♥', frame.width / 2, side + border + caption * 0.42);
+  g.fillStyle = '#8A7B6C';
+  g.font = font(500, side * 0.032);
+  g.fillText(`${date} · friendship lvl ${friendshipLevel()}`, frame.width / 2, side + border + caption * 0.72);
+  return frame;
+}
+
+function retroFrame(shot, date) {
+  const width = shot.width;
+  const height = shot.height;
+  const short = Math.min(width, height);
+  const border = Math.round(short * 0.025);
+  const titleBar = Math.round(short * 0.08);
+  const statusBar = Math.round(short * 0.06);
+  const frame = blankCanvas(width + border * 2, height + titleBar + statusBar + border * 2);
+  const g = frame.getContext('2d');
+  g.fillStyle = '#2B2118';
+  g.fillRect(0, 0, frame.width, frame.height);
+  g.fillStyle = '#D97757';
+  g.fillRect(border, border, width, titleBar);
+  g.drawImage(shot, border, border + titleBar);
+  g.fillStyle = '#F4EFE6';
+  g.fillRect(border, border + titleBar + height, width, statusBar);
+  g.textBaseline = 'middle';
+  g.fillStyle = '#fff';
+  g.font = font(800, titleBar * 0.42);
+  g.textAlign = 'left';
+  g.fillText('■ clawd.exe', border + titleBar * 0.35, border + titleBar / 2);
+  g.textAlign = 'right';
+  g.fillText('_  □  ✕', border + width - titleBar * 0.35, border + titleBar / 2);
+  g.fillStyle = '#2B2118';
+  g.font = font(700, statusBar * 0.42);
+  g.textAlign = 'left';
+  g.fillText(`♥ ${save.pets}  boops ${save.boops}  lvl ${friendshipLevel()}`, border + statusBar * 0.4, border + titleBar + height + statusBar / 2);
+  g.textAlign = 'right';
+  g.fillText(`${date}  ${formatHour(currentHour())}`, border + width - statusBar * 0.4, border + titleBar + height + statusBar / 2);
+  return frame;
+}
+
+function cleanFrame(shot, scale) {
+  const frame = blankCanvas(shot.width, shot.height);
+  const g = frame.getContext('2d');
+  g.drawImage(shot, 0, 0);
+  g.font = font(800, 16 * scale);
+  g.textAlign = 'right';
+  g.textBaseline = 'bottom';
+  g.lineWidth = 4 * scale;
+  g.strokeStyle = 'rgba(255,255,255,.85)';
+  g.strokeText('clawd ♥', frame.width - 14 * scale, frame.height - 12 * scale);
+  g.fillStyle = '#2B2118';
+  g.fillText('clawd ♥', frame.width - 14 * scale, frame.height - 12 * scale);
+  return frame;
+}
+
+export function takePhoto() {
+  const width = innerWidth;
+  const height = innerHeight;
+  const normalRatio = renderer.getPixelRatio();
+  const photoRatio = Math.min(3, Math.max(1.5, 2600 / Math.max(width, height)));
+  renderer.setPixelRatio(photoRatio);
+  renderer.setSize(width, height, false);
+  renderer.render(scene, camera);
+  const shot = blankCanvas(stage.width, stage.height);
+  shot.getContext('2d').drawImage(stage, 0, 0);
+  renderer.setPixelRatio(normalRatio);
+  renderer.setSize(width, height, false);
+
+  const scale = shot.width / width;
+  drawBubble(shot.getContext('2d'), scale);
+  const date = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  const framed = state.frame === 'polaroid' ? polaroidFrame(shot, scale, date) : state.frame === 'retro' ? retroFrame(shot, date) : cleanFrame(shot, scale);
+  try {
+    state.photoUrl = framed.toDataURL('image/png');
+    photoCanvas = framed;
+  } catch {
+    return;
+  }
+  $('saveNote').textContent = 'You can also long-press (or right-click) the photo to save it.';
+  $('photoImg').src = state.photoUrl;
+
+  const flash = $('flash');
+  flash.style.transition = 'none';
+  flash.style.opacity = '1';
+  requestAnimationFrame(() => {
+    flash.style.transition = 'opacity .6s';
+    flash.style.opacity = '0';
+  });
+  sfx.shutter();
+  save.photos++;
+  addBond(2);
+  persist();
+  setTimeout(() => $('modal').classList.add('show'), 350);
+}
+
+function savePhoto() {
+  const filename = `clawd-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.png`;
+  if (downloads && photoCanvas) {
+    photoCanvas.toBlob((blob) => {
+      if (!blob) return;
+      downloads
+        .save({ filename, data: blob })
+        .then(() => {
+          $('saveNote').textContent = 'saved ✓';
+        })
+        .catch((error) => {
+          if (!(error && error.code === 'declined')) $('saveNote').textContent = "Couldn't save here. Long-press (or right-click) the photo to save it.";
+        });
+    }, 'image/png');
+    return;
+  }
+  try {
+    const link = document.createElement('a');
+    link.href = state.photoUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch {}
+}
+
+export function initPhoto() {
+  $('shutter').addEventListener('click', () => {
+    unlockAudio();
+    takePhoto();
+  });
+  $('closePhoto').addEventListener('click', () => $('modal').classList.remove('show'));
+  $('savePhoto').addEventListener('click', savePhoto);
+  try {
+    if (window.claude && window.claude.use) {
+      window.claude
+        .use('downloads')
+        .then((api) => {
+          downloads = api;
+        })
+        .catch(() => {});
+    }
+  } catch {}
+}

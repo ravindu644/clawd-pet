@@ -1,0 +1,296 @@
+// The HUD, speech bubble, bottom sheets and photo-mode controls.
+import { Vector3 } from 'three';
+import { sfx, unlockAudio } from './audio.js';
+import { dismissButterfly, enterPhotoMode, giveTreat, hop, noteActivity, startDance, wake } from './behavior.js';
+import { BODY_HEIGHT, body, wearFace, wearHat, worldPoint } from './clawd.js';
+import { FACE_LINES, FACES, HAT_LINES, HATS } from './outfits.js';
+import { spawnHearts, spawnSprite, starTexture } from './particles.js';
+import { currentHour, friendshipLevel, pick, rand, save, state, writeSave } from './state.js';
+import { camera } from './world.js';
+
+const $ = (id) => document.getElementById(id);
+const bubble = $('bubble');
+const moodText = $('mood');
+const moodFill = $('fill');
+const scrim = $('scrim');
+const autoTimeButton = $('autoTime');
+const timeSlider = $('timeSlider');
+const timeLabel = $('timeLabel');
+const soundButton = $('soundBtn');
+const bubbleAnchor = new Vector3();
+
+let hintDismissed = false;
+let clockText = '';
+
+export function say(text, seconds = 1.4) {
+  bubble.textContent = text;
+  bubble.classList.add('show');
+  state.bubbleLeft = seconds;
+  state.bubbleAge = 0;
+  state.saidAt = state.time;
+}
+
+function refreshStats() {
+  $('statTxt').textContent = `♥ ${save.pets} · boops ${save.boops} · 🍪 ${save.treats}`;
+  $('lvl').textContent = 'lvl ' + friendshipLevel();
+}
+
+export function persist() {
+  writeSave();
+  refreshStats();
+}
+
+export function dismissHint() {
+  if (hintDismissed) return;
+  hintDismissed = true;
+  setTimeout(() => $('hint').classList.add('gone'), 3000);
+}
+
+export const formatHour = (hour) => {
+  hour = ((hour % 24) + 24) % 24;
+  const hours = Math.floor(hour);
+  const minutes = Math.floor((hour - hours) * 60);
+  return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
+};
+
+function openSheet(id) {
+  closeSheets();
+  $(id).classList.add('open');
+  scrim.classList.add('show');
+}
+
+function closeSheets() {
+  document.querySelectorAll('.sheet').forEach((sheet) => sheet.classList.remove('open'));
+  scrim.classList.remove('show');
+}
+
+function selectChip(container, id) {
+  container.querySelectorAll('.chip').forEach((chip) => chip.classList.toggle('sel', chip.dataset.id === id));
+}
+
+function makeChips(container, items, selected, onPick) {
+  container.innerHTML = '';
+  items.forEach(([id, label, icon]) => {
+    const chip = document.createElement('button');
+    chip.className = 'chip' + (id === selected ? ' sel' : '');
+    chip.dataset.id = id;
+    chip.innerHTML = `<b>${icon}</b>${label}`;
+    chip.addEventListener('click', () => {
+      container.querySelectorAll('.chip').forEach((other) => other.classList.toggle('sel', other === chip));
+      onPick(id);
+    });
+    container.appendChild(chip);
+  });
+}
+
+function reactToOutfit(line) {
+  noteActivity();
+  wake();
+  hop(4.5);
+  sfx.wear();
+  say(line, 1.8);
+  spawnSprite(starTexture, worldPoint(rand(-0.6, 0.6), BODY_HEIGHT + 0.5, 0.3), { size: 0.3, life: 0.8 });
+  spawnSprite(starTexture, worldPoint(rand(-0.6, 0.6), BODY_HEIGHT + 0.4, 0.3), { size: 0.24, life: 0.8 });
+}
+
+function chooseHat(id, quiet) {
+  if (state.butterfly && state.butterfly.mode === 'landed') dismissButterfly();
+  save.hat = id;
+  wearHat(id);
+  persist();
+  selectChip($('hatChips'), id);
+  if (!quiet) reactToOutfit(HAT_LINES[id]);
+}
+
+function chooseFace(id, quiet) {
+  save.face = id;
+  wearFace(id);
+  persist();
+  selectChip($('faceChips'), id);
+  if (!quiet) reactToOutfit(FACE_LINES[id]);
+}
+
+function syncSoundButton() {
+  soundButton.textContent = save.sound ? '🔊 On' : '🔇 Off';
+  soundButton.classList.toggle('on', save.sound);
+}
+
+export function syncTimeControls() {
+  autoTimeButton.classList.toggle('on', state.autoTime);
+  autoTimeButton.textContent = state.autoTime ? '⏱ Auto' : '⏱ Manual';
+  timeSlider.value = currentHour();
+  timeLabel.textContent = formatHour(currentHour());
+}
+
+export function setMotionStatus(text) {
+  $('motionStatus').textContent = text || (state.motionSeen ? 'active ✓ shake your phone!' : 'not detected yet');
+}
+
+function requestMotion() {
+  const report = () =>
+    setMotionStatus(state.motionSeen ? null : 'no sensor reachable here. The viewer may block it; the offline file on your phone can use it.');
+  try {
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      DeviceMotionEvent.requestPermission()
+        .then((answer) => {
+          if (answer === 'granted') {
+            setMotionStatus('listening…');
+            setTimeout(report, 1500);
+          } else {
+            setMotionStatus('permission denied');
+          }
+        })
+        .catch(() => setMotionStatus('blocked here. Try the offline file.'));
+    } else {
+      setMotionStatus('listening…');
+      setTimeout(report, 1500);
+    }
+  } catch {
+    setMotionStatus('blocked here. Try the offline file.');
+  }
+}
+
+const POSES = [
+  ['none', 'Natural', '🙂'],
+  ['smile', 'Smile', '😊'],
+  ['wave', 'Wave', '👋'],
+  ['love', 'Love', '😍'],
+  ['sleepy', 'Sleepy', '😴'],
+  ['dizzy', 'Dizzy', '😵‍💫'],
+  ['jump', 'Jump!', '🦘'],
+];
+
+const FRAMES = [
+  ['polaroid', 'Polaroid', '🖼️'],
+  ['retro', 'Retro', '💾'],
+  ['clean', 'Clean', '⬜'],
+];
+
+function exitPhotoMode() {
+  state.photoMode = false;
+  state.pose = 'none';
+  selectChip($('poseChips'), 'none');
+  document.body.classList.remove('photo');
+}
+
+export function initUI() {
+  refreshStats();
+  scrim.addEventListener('click', closeSheets);
+  document.querySelectorAll('[data-close]').forEach((button) => button.addEventListener('click', closeSheets));
+  $('treatBtn').addEventListener('click', giveTreat);
+  $('danceBtn').addEventListener('click', startDance);
+  $('wearBtn').addEventListener('click', () => {
+    unlockAudio();
+    openSheet('wearSheet');
+  });
+  $('moreBtn').addEventListener('click', () => {
+    unlockAudio();
+    openSheet('moreSheet');
+  });
+
+  makeChips($('hatChips'), HATS, save.hat, (id) => chooseHat(id));
+  makeChips($('faceChips'), FACES, save.face, (id) => chooseFace(id));
+  $('randomFit').addEventListener('click', () => {
+    chooseHat(pick(HATS.slice(1))[0], true);
+    chooseFace(pick(FACES)[0], true);
+    reactToOutfit(pick(['new fit who dis', '✨ drip ✨', 'how do i look?', 'fashion icon']));
+  });
+
+  syncSoundButton();
+  soundButton.addEventListener('click', () => {
+    save.sound = !save.sound;
+    syncSoundButton();
+    persist();
+    if (save.sound) {
+      unlockAudio();
+      sfx.hi();
+    }
+  });
+
+  autoTimeButton.addEventListener('click', () => {
+    state.autoTime = !state.autoTime;
+    if (!state.autoTime) state.manualHour = parseFloat(timeSlider.value);
+    syncTimeControls();
+  });
+  timeSlider.addEventListener('input', () => {
+    state.autoTime = false;
+    state.manualHour = parseFloat(timeSlider.value);
+    syncTimeControls();
+  });
+  syncTimeControls();
+
+  setMotionStatus();
+  $('motionBtn').addEventListener('click', requestMotion);
+
+  makeChips($('poseChips'), POSES, 'none', (id) => {
+    noteActivity();
+    if (id === 'jump') {
+      selectChip($('poseChips'), state.pose);
+      if (state.hopHeight < 0.01) {
+        hop(8.5);
+        state.jumpPhotoArmed = true;
+        sfx.hop();
+      }
+      return;
+    }
+    state.pose = id;
+    if (id === 'love') spawnHearts(3, worldPoint(0, BODY_HEIGHT + 0.2, 0.2));
+    if (id === 'wave') sfx.hi();
+  });
+  makeChips($('frameChips'), FRAMES, state.frame, (id) => {
+    state.frame = id;
+    $('guide').classList.toggle('show', id === 'polaroid');
+  });
+  $('guide').classList.toggle('show', state.frame === 'polaroid');
+  $('photoBtn').addEventListener('click', () => {
+    closeSheets();
+    document.body.classList.add('photo');
+    enterPhotoMode();
+  });
+  $('exitPhoto').addEventListener('click', exitPhotoMode);
+}
+
+function currentMood() {
+  const { butterfly, clingy, happiness, isNight, mode } = state;
+  if (mode === 'sleep') return isNight ? 'sound asleep 🌙' : 'snoozing 💤';
+  if (state.sulking) return 'sulking 😤 (pet him?)';
+  if (mode === 'dance') return 'vibing 🎶';
+  if (mode === 'eat' || state.cookie) return 'cookie time 🍪';
+  if (mode === 'spin') return 'grumpy 😤';
+  if (mode === 'dizzy') return 'dizzy 😵‍💫';
+  if (mode === 'chase') return butterfly && butterfly.mode === 'landed' ? 'made a friend 🦋' : 'chasing a butterfly 🦋';
+  if (mode === 'trip') return state.tripFell ? 'embarrassed 🫣' : 'on a little walk 🐾';
+  if (mode === 'sneeze') return 'sniffly 🤧';
+  if (mode === 'stargaze') return 'stargazing ✨';
+  if (mode === 'yawn') return 'sleepy 🥱';
+  if (state.tickle > 0.3) return 'giggly 🤭';
+  if (state.purr > 0.3) return 'loving the pets ✨';
+  if (state.walking) return 'on a stroll 🐾';
+  if (clingy) return 'clingy 🧡 follows you';
+  if (happiness > 55) return isNight ? 'cozy 🌙' : 'content ☺';
+  if (happiness > 25) return isNight ? 'a bit sleepy' : 'just chillin';
+  return 'kinda lonely… pet me?';
+}
+
+export function updateHud(dt, hour) {
+  state.bubbleLeft -= dt;
+  if (state.bubbleLeft <= 0) bubble.classList.remove('show');
+  const hatHeight = save.hat === 'wizard' ? 1.1 : save.hat === 'party' ? 0.6 : save.hat === 'none' ? 0 : 0.4;
+  bubbleAnchor.set(0, BODY_HEIGHT + 0.55 + hatHeight, 0);
+  body.localToWorld(bubbleAnchor);
+  bubbleAnchor.project(camera);
+  const pop = 1 + Math.max(0, 0.15 - state.bubbleAge) * 2;
+  bubble.style.transform = `translate(${(bubbleAnchor.x * 0.5 + 0.5) * innerWidth}px,${(-bubbleAnchor.y * 0.5 + 0.5) * innerHeight}px) translate(-50%,-100%) scale(${pop})`;
+
+  const mood = currentMood();
+  if (moodText.textContent !== mood) moodText.textContent = mood;
+  moodFill.style.width = state.happiness.toFixed(1) + '%';
+
+  const icon = state.day > 0.75 ? '☀️ ' : state.night > 0.75 ? '🌙 ' : hour < 12 ? '🌅 ' : '🌇 ';
+  const clock = icon + formatHour(hour);
+  if (clock !== clockText) {
+    clockText = clock;
+    $('clock').textContent = clock;
+    if (state.autoTime) timeLabel.textContent = formatHour(hour);
+  }
+}

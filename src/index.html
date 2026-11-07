@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Pet Clawd</title>
+<!-- css -->
+</head>
+<body>
+<div id="loading">waking clawd up…</div>
+<div id="stage"></div>
+
+<div class="hud">
+  <div class="card">
+    <div class="name"><i></i>CLAWD<span id="lvl">lvl 1</span></div>
+    <div id="mood">content ☺</div>
+    <div class="bar"><div id="fill"></div></div>
+    <div id="stats"><span id="statTxt"></span><span id="clock"></span></div>
+  </div>
+</div>
+
+<div id="bubble"></div>
+<div id="hint"><b>stroke</b> to pet · <b>tap</b> to boop · <b>tap the rug</b> to call him<br><b>shake</b> him (or your phone) for chaos · he lives on <b>your clock</b></div>
+
+<div class="controls">
+  <button class="ib primary" id="treatBtn"><b>🍪</b><small>Treat</small></button>
+  <button class="ib" id="danceBtn"><b>🎶</b><small>Dance</small></button>
+  <button class="ib" id="wearBtn"><b>👒</b><small>Wear</small></button>
+  <button class="ib" id="photoBtn"><b>📸</b><small>Photo</small></button>
+  <button class="ib" id="moreBtn"><b>⚙️</b><small>More</small></button>
+</div>
+
+<div id="scrim"></div>
+<div class="sheet" id="wearSheet">
+  <h3>WARDROBE <button data-close>done</button></h3>
+  <h4>HATS</h4><div class="chips" id="hatChips"></div>
+  <h4>FACE &amp; EXTRAS</h4><div class="chips" id="faceChips"></div>
+  <div class="row" style="margin-top:6px"><button id="randomFit">🎲 Surprise me</button></div>
+</div>
+<div class="sheet" id="moreSheet">
+  <h3>SETTINGS <button data-close>done</button></h3>
+  <h4>TIME OF DAY</h4>
+  <div class="row"><button id="autoTime" class="on">⏱ Auto</button><input type="range" id="timeSlider" min="0" max="24" step="0.25"><span id="timeLabel">12:00</span></div>
+  <p class="note">Auto follows your real clock. Drag the slider to preview sunrise, sunset or night.</p>
+  <h4>SHAKE TO WAKE</h4>
+  <div class="row"><button id="motionBtn">📳 Enable motion</button><span id="motionStatus" class="note" style="margin:0"></span></div>
+  <p class="note">No sensor? Grab Clawd and wiggle your finger or mouse back and forth fast, or press <b>S</b>.</p>
+  <h4>SOUND</h4>
+  <div class="row"><button id="soundBtn">🔊 On</button></div>
+</div>
+
+<div id="guide"></div>
+<div id="photoUI">
+  <div id="photoTop"><div class="card tag pi">📸 PHOTO MODE</div><button class="pi" id="exitPhoto">✕ Exit</button></div>
+  <div id="photoBottom">
+    <div class="chips pi" id="poseChips"></div>
+    <div id="shutterRow">
+      <div class="chips pi" id="frameChips" style="padding-bottom:4px"></div>
+      <button class="pi" id="shutter" aria-label="Take photo"></button>
+    </div>
+  </div>
+</div>
+<div id="flash"></div>
+<div id="modal"><div class="box">
+  <img id="photoImg" alt="Photo of Clawd">
+  <div class="row"><button class="primary" id="savePhoto">⬇ Save</button><button id="closePhoto">Done</button></div>
+  <p class="note" id="saveNote" style="margin:0;text-align:center">You can also long-press (or right-click) the photo to save it.</p>
+</div></div>
+
+<!-- js -->
+</body>
+</html>
