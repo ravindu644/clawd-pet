@@ -6,7 +6,7 @@ import { after, before, test } from 'node:test';
 import { chromium } from 'playwright-core';
 
 const DEV_BUILD = 'file://' + resolve('.test/clawd.html');
-const SHIPPED_BUILD = 'file://' + resolve('clawd.html');
+const SHIPPED_BUILD = 'file://' + resolve('dist/clawd.html');
 
 let browser;
 

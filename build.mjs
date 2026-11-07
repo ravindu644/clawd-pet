@@ -1,10 +1,10 @@
-// Builds one self-contained clawd.html. `node build.mjs --dev` writes .test/clawd.html with test hooks.
+// Builds one self-contained dist/clawd.html. `node build.mjs --dev` writes .test/clawd.html with test hooks.
 import { build } from 'esbuild';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 const dev = process.argv.includes('--dev');
-const out = dev ? '.test/clawd.html' : 'clawd.html';
+const out = dev ? '.test/clawd.html' : 'dist/clawd.html';
 
 const { outputFiles } = await build({
   entryPoints: ['src/main.js', 'src/style.css'],

@@ -2,7 +2,7 @@
 
 A small 3D virtual pet that lives on your clock. Stroke him, boop him, dress him up and take his photo.
 
-The game ships as one file, `clawd.html`, with everything inlined. Open it in a browser and it works with no network.
+The game builds into one file, `dist/clawd.html`, with everything inlined. Open it in a browser and it works with no network.
 
 ## Build
 
@@ -11,7 +11,7 @@ npm install
 npm run build
 ```
 
-This writes `clawd.html` at the repo root. Edit the files in `src/`, not the built file.
+This writes `dist/clawd.html`, which is not committed. Edit the files in `src/`.
 
 ## Test
 
