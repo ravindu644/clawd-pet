@@ -10,19 +10,17 @@
 <div id="loading">waking clawd up…</div>
 <div id="stage"></div>
 
-<div class="hud">
-  <div class="card">
-    <div class="name"><i></i>CLAWD<span id="lvl">lvl 1</span></div>
-    <div id="mood">content ☺</div>
-    <div class="bar"><div id="fill"></div></div>
-    <div id="stats"><span id="statTxt"></span><span id="clock"></span></div>
-  </div>
+<div class="hud panel">
+  <div class="title"><h1>Clawd</h1><span id="lvl">Lvl 1</span></div>
+  <div id="mood"></div>
+  <div class="bar"><div id="fill"></div></div>
+  <div id="stats"><span id="statTxt"></span><span id="clock"></span></div>
 </div>
 
 <div id="bubble"></div>
-<div id="hint"><b>stroke</b> to pet · <b>tap</b> to boop · <b>tap the rug</b> to call him<br><b>shake</b> him (or your phone) for chaos · he lives on <b>your clock</b></div>
+<div id="hint" class="panel">Stroke him · boop him · tap the rug to call him</div>
 
-<div class="controls">
+<div class="controls panel">
   <button class="ib primary" id="treatBtn"><b>🍪</b><small>Treat</small></button>
   <button class="ib" id="danceBtn"><b>🎶</b><small>Dance</small></button>
   <button class="ib" id="wearBtn"><b>👒</b><small>Wear</small></button>
@@ -31,40 +29,40 @@
 </div>
 
 <div id="scrim"></div>
-<div class="sheet" id="wearSheet">
-  <h3>WARDROBE <button data-close>done</button></h3>
-  <h4>HATS</h4><div class="chips" id="hatChips"></div>
-  <h4>FACE &amp; EXTRAS</h4><div class="chips" id="faceChips"></div>
-  <div class="row" style="margin-top:6px"><button id="randomFit">🎲 Surprise me</button></div>
+<div class="sheet panel" id="wearSheet">
+  <h2>Wardrobe <button data-close>Done</button></h2>
+  <h3>Hats</h3><div class="chips" id="hatChips"></div>
+  <h3>Face and extras</h3><div class="chips" id="faceChips"></div>
+  <div class="row" style="margin-top:12px"><button class="secondary" id="randomFit">🎲 Pick for him</button></div>
 </div>
-<div class="sheet" id="moreSheet">
-  <h3>SETTINGS <button data-close>done</button></h3>
-  <h4>TIME OF DAY</h4>
-  <div class="row"><button id="autoTime" class="on">⏱ Auto</button><input type="range" id="timeSlider" min="0" max="24" step="0.25"><span id="timeLabel">12:00</span></div>
-  <p class="note">Auto follows your real clock. Drag the slider to preview sunrise, sunset or night.</p>
-  <h4>SHAKE TO WAKE</h4>
-  <div class="row"><button id="motionBtn">📳 Enable motion</button><span id="motionStatus" class="note" style="margin:0"></span></div>
-  <p class="note">No sensor? Grab Clawd and wiggle your finger or mouse back and forth fast, or press <b>S</b>.</p>
-  <h4>SOUND</h4>
-  <div class="row"><button id="soundBtn">🔊 On</button></div>
+<div class="sheet panel" id="moreSheet">
+  <h2>Settings <button data-close>Done</button></h2>
+  <h3>Time of day</h3>
+  <div class="row"><button id="autoTime" class="secondary">⏱ Auto</button><input type="range" id="timeSlider" min="0" max="24" step="0.25" aria-label="Time of day"><span id="timeLabel">12:00</span></div>
+  <p class="note">Auto follows your real clock. Drag the slider to see sunrise, sunset or night.</p>
+  <h3>Shake him</h3>
+  <div class="row"><button class="secondary" id="motionBtn">📳 Use phone motion</button><span id="motionStatus" class="note" style="margin:0"></span></div>
+  <p class="note">Or grab Clawd and wiggle back and forth fast, or press S.</p>
+  <h3>Sound</h3>
+  <div class="row"><button class="secondary" id="soundBtn">🔊 On</button></div>
 </div>
 
 <div id="guide"></div>
 <div id="photoUI">
-  <div id="photoTop"><div class="card tag pi">📸 PHOTO MODE</div><button class="pi" id="exitPhoto">✕ Exit</button></div>
+  <div id="photoTop"><div class="panel tag">📸 Photo mode</div><button class="pi" id="exitPhoto">Exit</button></div>
   <div id="photoBottom">
     <div class="chips pi" id="poseChips"></div>
     <div id="shutterRow">
-      <div class="chips pi" id="frameChips" style="padding-bottom:4px"></div>
+      <div class="chips pi" id="frameChips"></div>
       <button class="pi" id="shutter" aria-label="Take photo"></button>
     </div>
   </div>
 </div>
 <div id="flash"></div>
-<div id="modal"><div class="box">
+<div id="modal"><div class="box panel">
   <img id="photoImg" alt="Photo of Clawd">
-  <div class="row"><button class="primary" id="savePhoto">⬇ Save</button><button id="closePhoto">Done</button></div>
-  <p class="note" style="margin:0;text-align:center">You can also long-press (or right-click) the photo to save it.</p>
+  <div class="row"><button class="primary" id="savePhoto">Save</button><button class="secondary" id="closePhoto">Done</button></div>
+  <p class="note" style="margin:0;text-align:center">You can also long-press or right-click the photo to save it.</p>
 </div></div>
 
 <!-- js -->

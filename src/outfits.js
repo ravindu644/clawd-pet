@@ -1,7 +1,7 @@
 // Hats and face items. Each builder returns a fresh Group, so the same builders can also draw thumbnails.
 import {
-  ConeGeometry, CylinderGeometry, Group, IcosahedronGeometry, Mesh, MeshStandardMaterial, OctahedronGeometry,
-  PlaneGeometry, TorusGeometry, Vector3,
+  Box3, ConeGeometry, CylinderGeometry, DirectionalLight, Group, HemisphereLight, IcosahedronGeometry, Mesh,
+  MeshStandardMaterial, OctahedronGeometry, PerspectiveCamera, PlaneGeometry, Scene, Sphere, TorusGeometry, Vector3,
 } from 'three';
 import { canvasTexture, disposeObject, leafMaterial, roundedBox, standard, stemMaterial } from './world.js';
 
@@ -25,22 +25,22 @@ export const FACES = [
 ];
 
 export const HAT_LINES = {
-  party: "it's my party 🎉",
-  wizard: "you're a wizard, clawd",
-  crown: 'bow before me 👑',
-  beanie: 'cozy mode',
-  headphones: 'lo-fi beats to pet me to',
-  flower: '🌼 so pretty',
-  halo: "i'm an angel 😇",
-  none: 'free head!',
+  party: 'is it my birthday? 🎉',
+  wizard: 'i know one spell. it is this hat.',
+  crown: 'king of the rug 👑',
+  beanie: 'my head is a warm loaf',
+  headphones: "can't hear you. still purring. 🎧",
+  flower: '🌼 it smells like outside',
+  halo: 'i did nothing wrong 😇',
+  none: 'my head is out',
 };
 
 export const FACE_LINES = {
-  sunglasses: 'deal with it 😎',
-  nerd: 'um, actually ☝️🤓',
-  bowtie: 'very dapper',
-  mustache: 'bonjour 🥸',
-  none: 'the classic look',
+  sunglasses: 'the lamp is very bright 😎',
+  nerd: 'i have read one (1) book 🤓',
+  bowtie: 'i am going somewhere nice',
+  mustache: 'i am someone else now 🥸',
+  none: 'just my face again',
 };
 
 const BODY_DEPTH = 1.3;
@@ -215,3 +215,19 @@ export function buildFace(id, face = new Group()) {
   return face;
 }
 
+// Draws one outfit piece, alone on a transparent ground, for its wardrobe chip.
+export function drawOutfitThumbnail(thumbRenderer, outfit, target) {
+  const stage = new Scene();
+  stage.add(new HemisphereLight(0xffffff, 0xb8b8b8, 2.2));
+  const light = new DirectionalLight(0xffffff, 2);
+  light.position.set(2, 4, 5);
+  stage.add(light);
+  stage.add(outfit);
+  const { center, radius } = new Box3().setFromObject(outfit).getBoundingSphere(new Sphere());
+  const view = new PerspectiveCamera(24, 1, 0.1, 100);
+  view.position.copy(center).add(new Vector3(0.3, 0.5, 1).normalize().multiplyScalar((radius * 0.82) / Math.sin((24 / 2) * (Math.PI / 180))));
+  view.lookAt(center);
+  thumbRenderer.render(stage, view);
+  target.getContext('2d').drawImage(thumbRenderer.domElement, 0, 0, target.width, target.height);
+  disposeOutfit(outfit);
+}

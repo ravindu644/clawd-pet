@@ -366,6 +366,12 @@ export function updateDayCycle(hour) {
   return hour;
 }
 
+// The sky's hue at a fixed lightness, so it stays readable on both the day and night surfaces.
+export function skyAccent() {
+  const { h } = skyUniforms.top.value.getHSL({}, SRGBColorSpace);
+  return `hsl(${Math.round(h * 360)} 60% ${state.isNight ? 72 : 38}%)`;
+}
+
 // Runs after the camera has moved for this frame, so the sky can't trail behind it.
 export function centerSkyOnCamera() {
   sun.position.copy(camera.position).addScaledVector(sunDir, 55);

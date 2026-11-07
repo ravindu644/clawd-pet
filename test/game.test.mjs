@@ -521,3 +521,40 @@ test('his facing holds steady while a butterfly hovers overhead', async () => {
   assert.ok(worst * DEGREES < 5, `target moved ${(worst * DEGREES).toFixed(0)} degrees in a frame`);
   await page.context().close();
 });
+
+test('the wardrobe shows renders of the real items, once', async () => {
+  const page = await openGame();
+  const result = await page.evaluate(() => {
+    document.getElementById('wearBtn').click();
+    const canvases = [...document.querySelectorAll('#wearSheet .chip canvas')];
+    const painted = canvases.filter((canvas) => {
+      const { data } = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 3; i < data.length; i += 4) if (data[i] > 0) return true;
+      return false;
+    });
+    document.querySelector('#wearSheet [data-close]').click();
+    document.getElementById('wearBtn').click();
+    return { count: canvases.length, painted: painted.length, same: canvases[0] === document.querySelector('#wearSheet .chip canvas') };
+  });
+  assert.deepEqual(result, { count: 11, painted: 11, same: true });
+  await page.context().close();
+});
+
+test('the interface colour follows the sky and switches at night', async () => {
+  const page = await openGame();
+  const read = () =>
+    page.evaluate(() => ({
+      sky: document.documentElement.style.getPropertyValue('--sky'),
+      night: document.body.classList.contains('night'),
+    }));
+  const noon = await read();
+  await page.evaluate(() => {
+    __clawd.setHour(22);
+    __step(4);
+  });
+  const late = await read();
+  assert.equal(noon.night, false);
+  assert.equal(late.night, true);
+  assert.notEqual(noon.sky, late.sky);
+  await page.context().close();
+});

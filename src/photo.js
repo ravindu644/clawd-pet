@@ -17,32 +17,28 @@ function drawBubble(g, scale) {
   const width = rect.width * scale;
   const height = rect.height * scale;
   g.save();
-  g.fillStyle = '#2B2118';
-  g.beginPath();
-  g.roundRect(x + 3 * scale, y + 3 * scale, width, height, 12 * scale);
-  g.fill();
   g.fillStyle = '#fff';
-  g.strokeStyle = '#2B2118';
-  g.lineWidth = 2 * scale;
+  g.strokeStyle = '#d4d4d4';
+  g.lineWidth = scale;
   g.beginPath();
-  g.roundRect(x, y, width, height, 12 * scale);
+  g.roundRect(x, y, width, height, 8 * scale);
   g.fill();
   g.stroke();
   g.beginPath();
-  g.moveTo(x + width / 2 - 7 * scale, y + height - 1 * scale);
-  g.lineTo(x + width / 2, y + height + 8 * scale);
-  g.lineTo(x + width / 2 + 7 * scale, y + height - 1 * scale);
+  g.moveTo(x + width / 2 - 6 * scale, y + height - scale);
+  g.lineTo(x + width / 2, y + height + 6 * scale);
+  g.lineTo(x + width / 2 + 6 * scale, y + height - scale);
   g.fill();
   g.beginPath();
-  g.moveTo(x + width / 2 - 7 * scale, y + height);
-  g.lineTo(x + width / 2, y + height + 8 * scale);
-  g.lineTo(x + width / 2 + 7 * scale, y + height);
+  g.moveTo(x + width / 2 - 6 * scale, y + height);
+  g.lineTo(x + width / 2, y + height + 6 * scale);
+  g.lineTo(x + width / 2 + 6 * scale, y + height);
   g.stroke();
-  g.fillStyle = '#2B2118';
-  g.font = `700 ${14 * scale}px "JetBrains Mono", monospace`;
+  g.fillStyle = '#0a0a0a';
+  g.font = font(500, 14 * scale);
   g.textBaseline = 'middle';
   g.textAlign = 'center';
-  g.fillText(bubble.textContent, x + width / 2, y + height / 2 + 1 * scale);
+  g.fillText(bubble.textContent, x + width / 2, y + height / 2 + scale);
   g.restore();
 }
 
@@ -53,7 +49,7 @@ function blankCanvas(width, height) {
   return canvas;
 }
 
-const font = (weight, size) => `${weight} ${size}px "JetBrains Mono", monospace`;
+const font = (weight, size) => `${weight} ${size}px Geist, system-ui, sans-serif`;
 
 function polaroidFrame(shot, scale, date) {
   const side = Math.round(Math.min(innerWidth, innerHeight) * 0.9 * scale);
@@ -63,19 +59,19 @@ function polaroidFrame(shot, scale, date) {
   const caption = Math.round(side * 0.24);
   const frame = blankCanvas(side + border * 2, side + border + caption);
   const g = frame.getContext('2d');
-  g.fillStyle = '#FFFDF8';
+  g.fillStyle = '#fff';
   g.fillRect(0, 0, frame.width, frame.height);
   g.drawImage(shot, cropX, cropY, side, side, border, border, side, side);
-  g.strokeStyle = 'rgba(43,33,24,.18)';
+  g.strokeStyle = 'rgba(10,10,10,.12)';
   g.lineWidth = Math.max(2, side * 0.003);
   g.strokeRect(border, border, side, side);
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.fillStyle = '#2B2118';
-  g.font = font(800, side * 0.06);
+  g.fillStyle = '#141414';
+  g.font = font(500, side * 0.06);
   g.fillText('clawd ♥', frame.width / 2, side + border + caption * 0.42);
-  g.fillStyle = '#8A7B6C';
-  g.font = font(500, side * 0.032);
+  g.fillStyle = '#6b6b6b';
+  g.font = font(400, side * 0.032);
   g.fillText(`${date} · friendship lvl ${friendshipLevel()}`, frame.width / 2, side + border + caption * 0.72);
   return frame;
 }
@@ -89,22 +85,20 @@ function retroFrame(shot, date) {
   const statusBar = Math.round(short * 0.06);
   const frame = blankCanvas(width + border * 2, height + titleBar + statusBar + border * 2);
   const g = frame.getContext('2d');
-  g.fillStyle = '#2B2118';
+  g.fillStyle = '#141414';
   g.fillRect(0, 0, frame.width, frame.height);
-  g.fillStyle = '#D97757';
-  g.fillRect(border, border, width, titleBar);
   g.drawImage(shot, border, border + titleBar);
-  g.fillStyle = '#F4EFE6';
+  g.fillStyle = '#eee';
   g.fillRect(border, border + titleBar + height, width, statusBar);
   g.textBaseline = 'middle';
   g.fillStyle = '#fff';
-  g.font = font(800, titleBar * 0.42);
+  g.font = font(500, titleBar * 0.42);
   g.textAlign = 'left';
   g.fillText('■ clawd.exe', border + titleBar * 0.35, border + titleBar / 2);
   g.textAlign = 'right';
   g.fillText('_  □  ✕', border + width - titleBar * 0.35, border + titleBar / 2);
-  g.fillStyle = '#2B2118';
-  g.font = font(700, statusBar * 0.42);
+  g.fillStyle = '#141414';
+  g.font = font(500, statusBar * 0.42);
   g.textAlign = 'left';
   g.fillText(`♥ ${save.pets}  boops ${save.boops}  lvl ${friendshipLevel()}`, border + statusBar * 0.4, border + titleBar + height + statusBar / 2);
   g.textAlign = 'right';
@@ -116,13 +110,13 @@ function cleanFrame(shot, scale) {
   const frame = blankCanvas(shot.width, shot.height);
   const g = frame.getContext('2d');
   g.drawImage(shot, 0, 0);
-  g.font = font(800, 16 * scale);
+  g.font = font(500, 16 * scale);
   g.textAlign = 'right';
   g.textBaseline = 'bottom';
   g.lineWidth = 4 * scale;
   g.strokeStyle = 'rgba(255,255,255,.85)';
   g.strokeText('clawd ♥', frame.width - 14 * scale, frame.height - 12 * scale);
-  g.fillStyle = '#2B2118';
+  g.fillStyle = '#141414';
   g.fillText('clawd ♥', frame.width - 14 * scale, frame.height - 12 * scale);
   return frame;
 }

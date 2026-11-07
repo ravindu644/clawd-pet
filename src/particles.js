@@ -3,7 +3,7 @@ import { BoxGeometry, Mesh, MeshBasicMaterial, RingGeometry, Sprite, SpriteMater
 import { clamp, rand, state } from './state.js';
 import { canvasTexture, FLOOR_Y, scene, standard } from './world.js';
 
-export const GLYPH_FONT = '800 96px "JetBrains Mono", monospace';
+export const GLYPH_FONT = '500 96px Geist, system-ui, sans-serif';
 
 export function drawGlyph(g, text, color) {
   g.clearRect(0, 0, 128, 128);

@@ -1,12 +1,12 @@
 // The HUD, speech bubble, bottom sheets and photo-mode controls.
-import { Vector3 } from 'three';
+import { ACESFilmicToneMapping, Vector3, WebGLRenderer } from 'three';
 import { sfx, unlockAudio } from './audio.js';
 import { dismissButterfly, enterPhotoMode, giveTreat, hop, noteActivity, startDance, wake } from './behavior.js';
 import { BODY_HEIGHT, body, wearFace, wearHat, worldPoint } from './clawd.js';
-import { FACE_LINES, FACES, HAT_LINES, HATS } from './outfits.js';
+import { buildFace, buildHat, drawOutfitThumbnail, FACE_LINES, FACES, HAT_LINES, HATS } from './outfits.js';
 import { spawnHearts, spawnSprite, starTexture } from './particles.js';
 import { clamp, currentHour, friendshipLevel, pick, rand, save, state, writeSave } from './state.js';
-import { camera } from './world.js';
+import { camera, skyAccent } from './world.js';
 
 const $ = (id) => document.getElementById(id);
 const bubble = $('bubble');
@@ -36,7 +36,7 @@ export function say(text, seconds = 1.4) {
 
 function refreshStats() {
   $('statTxt').textContent = `♥ ${save.pets} · boops ${save.boops} · 🍪 ${save.treats}`;
-  $('lvl').textContent = 'lvl ' + friendshipLevel();
+  $('lvl').textContent = 'Lvl ' + friendshipLevel();
 }
 
 export function persist() {
@@ -87,6 +87,36 @@ function makeChips(container, items, selected, onPick) {
   });
 }
 
+let thumbnailsDrawn = false;
+
+// Swaps the wardrobe's emoji for renders of the real items, the first time it opens.
+// A short-lived second renderer leaves the game's canvas untouched. If it fails, the emoji stay.
+function drawWardrobeThumbnails() {
+  if (thumbnailsDrawn) return;
+  thumbnailsDrawn = true;
+  let thumbRenderer;
+  try {
+    thumbRenderer = new WebGLRenderer({ alpha: true, antialias: true });
+  } catch {
+    return;
+  }
+  thumbRenderer.setSize(132, 132, false);
+  thumbRenderer.toneMapping = ACESFilmicToneMapping;
+  const draw = (containerId, build) => {
+    $(containerId).querySelectorAll('.chip').forEach((chip) => {
+      if (chip.dataset.id === 'none') return;
+      const target = document.createElement('canvas');
+      target.width = target.height = 132;
+      drawOutfitThumbnail(thumbRenderer, build(chip.dataset.id), target);
+      chip.querySelector('b').replaceChildren(target);
+    });
+  };
+  draw('hatChips', buildHat);
+  draw('faceChips', buildFace);
+  thumbRenderer.dispose();
+  thumbRenderer.forceContextLoss();
+}
+
 function reactToOutfit(line) {
   noteActivity();
   wake();
@@ -125,23 +155,23 @@ export function syncTimeControls() {
 }
 
 export function setMotionStatus(text) {
-  $('motionStatus').textContent = text || (state.motionSeen ? 'active ✓ shake your phone!' : 'not detected yet');
+  $('motionStatus').textContent = text || (state.motionSeen ? 'Listening. Shake your phone!' : '');
 }
 
 async function requestMotion() {
-  setMotionStatus('listening…');
+  setMotionStatus('Listening…');
   try {
     // iOS asks for permission first. Other browsers just start sending motion events.
     const ask = window.DeviceMotionEvent && DeviceMotionEvent.requestPermission;
     if (ask && (await DeviceMotionEvent.requestPermission()) !== 'granted') {
-      setMotionStatus('permission denied');
+      setMotionStatus('Permission denied');
       return;
     }
   } catch {
-    setMotionStatus('motion sensors are blocked here');
+    setMotionStatus('Motion sensors are blocked here');
     return;
   }
-  setTimeout(() => setMotionStatus(state.motionSeen ? null : 'no motion sensor found on this device'), 1500);
+  setTimeout(() => setMotionStatus(state.motionSeen ? null : 'No motion sensor found on this device'), 1500);
 }
 
 const POSES = [
@@ -176,6 +206,7 @@ export function initUI() {
   $('danceBtn').addEventListener('click', startDance);
   $('wearBtn').addEventListener('click', () => {
     unlockAudio();
+    drawWardrobeThumbnails();
     openSheet('wearSheet');
   });
   $('moreBtn').addEventListener('click', () => {
@@ -192,7 +223,7 @@ export function initUI() {
     chooseFace(face, true);
     selectChip($('hatChips'), hat);
     selectChip($('faceChips'), face);
-    reactToOutfit(pick(['new fit who dis', '✨ drip ✨', 'how do i look?', 'fashion icon']));
+    reactToOutfit(pick(['is this me?', 'i picked none of this', 'how do i look?', 'very rug-appropriate ✨']));
   });
 
   syncSoundButton();
@@ -296,5 +327,7 @@ export function updateHud(dt, hour) {
       timeLabel.textContent = formatHour(hour);
       timeSlider.value = hour;
     }
+    document.documentElement.style.setProperty('--sky', skyAccent());
   }
+  document.body.classList.toggle('night', state.isNight);
 }
