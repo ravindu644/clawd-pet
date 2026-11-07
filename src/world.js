@@ -40,7 +40,17 @@ export function disposeObject(object, keep = []) {
   });
 }
 
-export const renderer = new WebGLRenderer({ antialias: true });
+function createRenderer() {
+  try {
+    return new WebGLRenderer({ antialias: true });
+  } catch (error) {
+    document.body.classList.add('no-webgl');
+    document.getElementById('loading').textContent = "Clawd needs WebGL to draw his rug, and this browser can't run it.";
+    throw error;
+  }
+}
+
+export const renderer = createRenderer();
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
@@ -183,10 +193,10 @@ scene.add(moon);
 
 const skyLight = new HemisphereLight(0xfff6ea, 0xd6c4ae, 1.15);
 scene.add(skyLight);
-const sunLight = new DirectionalLight(0xffffff, 2.3);
+export const sunLight = new DirectionalLight(0xffffff, 2.3);
 sunLight.castShadow = true;
 sunLight.shadow.mapSize.set(2048, 2048);
-Object.assign(sunLight.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 30 });
+Object.assign(sunLight.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 30 });
 sunLight.shadow.camera.updateProjectionMatrix();
 sunLight.shadow.bias = -4e-4;
 sunLight.shadow.normalBias = 0.02;
@@ -315,7 +325,7 @@ const sunDir = new Vector3();
 const moonDir = new Vector3();
 const lightDir = new Vector3();
 
-export function updateDayCycle(hour, clawdPosition) {
+export function updateDayCycle(hour) {
   hour = ((hour % 24) + 24) % 24;
   let key = 0;
   while (key < SKY_KEYS.length - 2 && SKY_KEYS[key + 1][0] <= hour) key++;
@@ -337,8 +347,8 @@ export function updateDayCycle(hour, clawdPosition) {
   const moonLightDir = moonDir.clone();
   moonLightDir.y = Math.max(moonLightDir.y, 0.35);
   lightDir.copy(moonLightDir).lerp(sunLightDir, state.day).normalize();
-  sunLight.position.copy(clawdPosition).addScaledVector(lightDir, 12);
-  sunLight.target.position.copy(clawdPosition);
+  // The light stays put as he walks. A moving shadow camera makes every static shadow shimmer.
+  sunLight.position.copy(lightDir).multiplyScalar(12);
 
   const lowSun = 1 - smoothstep(sunHeight, 0.05, 0.45);
   sunLight.color.copy(WHITE).lerp(SUNSET, lowSun * 0.85).lerp(MOONLIGHT, state.night);

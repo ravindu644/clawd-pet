@@ -45,6 +45,7 @@ function freezeTime() {
   let timers = [];
   window.setTimeout = (callback, delay = 0) => timers.push({ callback, at: now + delay });
   window.setInterval = () => 0;
+  window.__skip = (ms) => (now += ms);
   window.__step = (count = 1) => {
     for (let i = 0; i < count; i++) {
       now += 1000 / 60;
@@ -64,6 +65,21 @@ async function openGame({ viewport = { width: 480, height: 360 }, save = {} } = 
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.addInitScript(freezeTime);
+  await page.addInitScript(() => {
+    window.__audioContexts = [];
+    window.__oscillators = 0;
+    const RealContext = window.AudioContext;
+    window.AudioContext = class extends RealContext {
+      constructor() {
+        super();
+        window.__audioContexts.push(this);
+      }
+      createOscillator() {
+        window.__oscillators++;
+        return super.createOscillator();
+      }
+    };
+  });
   await page.addInitScript((data) => {
     localStorage.setItem('clawd-pet-v1', JSON.stringify({ lastSeen: Date.now() - 1000, happy: 60, ...data }));
   }, save);
@@ -86,7 +102,7 @@ test('the shipped file loads offline, requests nothing else and throws nothing',
   await page.waitForFunction(() => document.getElementById('bubble').classList.contains('show'));
   assert.deepEqual(errors, []);
   assert.deepEqual(requests.filter((url) => !url.startsWith('data:')), [SHIPPED_BUILD]);
-  assert.equal(await page.evaluate(() => 'clawdDebug' in window && '__clawd' in window), false);
+  assert.equal(await page.evaluate(() => '__clawd' in window), false);
   await context.close();
 });
 
@@ -320,5 +336,188 @@ test('every wardrobe chip can be reached with a mouse', async () => {
       .map((chip) => chip.textContent),
   );
   assert.deepEqual(unreachable, []);
+  await page.context().close();
+});
+
+test('no sound is scheduled before the first user gesture', async () => {
+  const page = await openGame();
+  const before = await page.evaluate(() => {
+    __clawd.startQuest('trip');
+    __clawd.state.nextFidget = 0;
+    __step(120);
+    return window.__audioContexts.length;
+  });
+  assert.equal(before, 0);
+  await page.evaluate(() => document.getElementById('treatBtn').click());
+  const oscillators = await page.evaluate(() => window.__oscillators);
+  assert.ok(oscillators > 0, 'the first gesture should make sound');
+  await page.context().close();
+});
+
+test('hiding the tab suspends audio and showing it resumes', async () => {
+  const page = await openGame();
+  await page.evaluate(async () => {
+    document.getElementById('treatBtn').click();
+    await window.__audioContexts[0].resume();
+  });
+  const setHidden = (hidden) =>
+    page.evaluate((value) => {
+      Object.defineProperty(document, 'hidden', { value, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }, hidden);
+  const audioState = async (expected) => {
+    for (let i = 0; i < 50; i++) {
+      const current = await page.evaluate(() => window.__audioContexts[0].state);
+      if (current === expected) return current;
+      await page.waitForTimeout(40);
+    }
+    return page.evaluate(() => window.__audioContexts[0].state);
+  };
+  await setHidden(true);
+  assert.equal(await audioState('suspended'), 'suspended');
+  await setHidden(false);
+  assert.equal(await audioState('running'), 'running');
+  await page.context().close();
+});
+
+test('the S shortcut ignores browser shortcuts like Ctrl+S', async () => {
+  const page = await openGame();
+  const modes = await page.evaluate(() => {
+    dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true }));
+    const withCtrl = __clawd.state.mode;
+    dispatchEvent(new KeyboardEvent('keydown', { key: 's' }));
+    return [withCtrl, __clawd.state.mode];
+  });
+  assert.deepEqual(modes, ['idle', 'dizzy']);
+  await page.context().close();
+});
+
+test('the time slider follows the clock on Auto', async () => {
+  const page = await openGame();
+  const value = await page.evaluate(() => {
+    __skip(3 * 3600 * 1000);
+    __step(1);
+    return parseFloat(document.getElementById('timeSlider').value);
+  });
+  const hour = await page.evaluate(() => new Date().getHours() + new Date().getMinutes() / 60);
+  assert.ok(Math.abs(value - hour) < 0.3, `slider at ${value}, clock at ${hour}`);
+  await page.context().close();
+});
+
+test('the jump photo only arms on a real hop and disarms on exit', async () => {
+  const page = await openGame();
+  const result = await page.evaluate(() => {
+    const { save, state } = __clawd;
+    const jump = () => document.querySelector('#poseChips [data-id=jump]').click();
+    document.getElementById('photoBtn').click();
+    state.hopVel = 1;
+    jump();
+    const armedMidHop = state.jumpPhotoArmed;
+    state.hopVel = 0;
+    state.hopHeight = 0;
+    jump();
+    const armedOnHop = state.jumpPhotoArmed;
+    const photos = save.photos;
+    document.getElementById('exitPhoto').click();
+    __step(60);
+    return { armedMidHop, armedOnHop, armedAfterExit: state.jumpPhotoArmed, extraPhotos: save.photos - photos };
+  });
+  assert.deepEqual(result, { armedMidHop: false, armedOnHop: true, armedAfterExit: false, extraPhotos: 0 });
+  await page.context().close();
+});
+
+test('the sunlight stays put while he walks', async () => {
+  const page = await openGame();
+  const moved = await page.evaluate(() => {
+    const { root, sunLight } = __clawd;
+    const before = sunLight.position.clone();
+    root.position.set(2, 0, 1);
+    __step(2);
+    return sunLight.position.distanceTo(before);
+  });
+  assert.ok(moved < 0.01, `light moved ${moved.toFixed(3)}`);
+  await page.context().close();
+});
+
+test('a browser without WebGL gets a plain message', async () => {
+  const context = await browser.newContext({ viewport: { width: 480, height: 360 } });
+  const page = await context.newPage();
+  await page.addInitScript(() => {
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+      return type.startsWith('webgl') ? null : getContext.call(this, type, ...args);
+    };
+  });
+  await page.goto(DEV_BUILD);
+  assert.match(await page.textContent('#loading'), /WebGL/);
+  assert.equal(await page.isVisible('.hud'), false);
+  await context.close();
+});
+
+test('the speech bubble stays on screen when zoomed in', async () => {
+  const page = await openGame({ viewport: { width: 390, height: 844 }, save: { hat: 'wizard' } });
+  const box = await page.evaluate(() => {
+    const { camera, controls, root, state } = __clawd;
+    state.nextFidget = 99;
+    root.position.set(2.2, 0, 0);
+    camera.position.sub(controls.target).multiplyScalar(0.45).add(controls.target);
+    document.getElementById('bubble').classList.remove('show');
+    __step(240);
+    document.querySelector('#hatChips [data-id=wizard]').click();
+    __step(30);
+    const rect = document.getElementById('bubble').getBoundingClientRect();
+    return { left: rect.left, right: rect.right, top: rect.top };
+  });
+  assert.ok(box.left >= 0 && box.right <= 390 && box.top >= 0, JSON.stringify(box));
+  await page.context().close();
+});
+
+test('the mood only promises following to mouse users', async () => {
+  const page = await openGame();
+  const moods = await page.evaluate(() => {
+    const { state } = __clawd;
+    state.happiness = 95;
+    state.lastPointerMove = -9;
+    state.pointerType = 'mouse';
+    __step(1);
+    const mouse = document.getElementById('mood').textContent;
+    state.pointerType = 'touch';
+    __step(1);
+    return [mouse, document.getElementById('mood').textContent];
+  });
+  assert.match(moods[0], /follows you/);
+  assert.doesNotMatch(moods[1], /follows you/);
+  await page.context().close();
+});
+
+test('idle quests do not count as the user being active', async () => {
+  const page = await openGame();
+  const result = await page.evaluate(() => {
+    const { startQuest, state } = __clawd;
+    const before = state.lastActivity;
+    startQuest('sneeze');
+    __step(240);
+    return { before, after: state.lastActivity, hintGone: document.getElementById('hint').classList.contains('gone') };
+  });
+  assert.equal(result.after, result.before);
+  assert.equal(result.hintGone, false);
+  await page.context().close();
+});
+
+test('his facing holds steady while a butterfly hovers overhead', async () => {
+  const page = await openGame();
+  const worst = await page.evaluate(() => {
+    const { root, startQuest, state } = __clawd;
+    state.nextFidget = 99;
+    startQuest('butterfly');
+    const targets = [];
+    for (let i = 0; i < 30; i++) {
+      state.butterfly.group.position.set(root.position.x + Math.cos(i) * 0.05, 2.5, root.position.z + Math.sin(i) * 0.05);
+      __step(1);
+      targets.push(state.targetYaw);
+    }
+    return Math.max(...targets.slice(1).map((yaw, i) => Math.abs(Math.atan2(Math.sin(yaw - targets[i]), Math.cos(yaw - targets[i])))));
+  });
+  assert.ok(worst * DEGREES < 5, `target moved ${(worst * DEGREES).toFixed(0)} degrees in a frame`);
   await page.context().close();
 });

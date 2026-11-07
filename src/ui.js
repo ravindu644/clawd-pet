@@ -5,7 +5,7 @@ import { dismissButterfly, enterPhotoMode, giveTreat, hop, noteActivity, startDa
 import { BODY_HEIGHT, body, wearFace, wearHat, worldPoint } from './clawd.js';
 import { FACE_LINES, FACES, HAT_LINES, HATS } from './outfits.js';
 import { spawnHearts, spawnSprite, starTexture } from './particles.js';
-import { currentHour, friendshipLevel, pick, rand, save, state, writeSave } from './state.js';
+import { clamp, currentHour, friendshipLevel, pick, rand, save, state, writeSave } from './state.js';
 import { camera } from './world.js';
 
 const $ = (id) => document.getElementById(id);
@@ -21,10 +21,14 @@ const bubbleAnchor = new Vector3();
 
 let hintDismissed = false;
 let clockText = '';
+let bubbleWidth = 0;
+let bubbleHeight = 0;
 
 export function say(text, seconds = 1.4) {
   bubble.textContent = text;
   bubble.classList.add('show');
+  bubbleWidth = bubble.offsetWidth;
+  bubbleHeight = bubble.offsetHeight;
   state.bubbleLeft = seconds;
   state.bubbleAge = 0;
   state.saidAt = state.time;
@@ -168,6 +172,7 @@ const FRAMES = [
 
 function exitPhotoMode() {
   state.photoMode = false;
+  state.jumpPhotoArmed = false;
   state.pose = 'none';
   selectChip($('poseChips'), 'none');
   document.body.classList.remove('photo');
@@ -226,8 +231,7 @@ export function initUI() {
     noteActivity();
     if (id === 'jump') {
       selectChip($('poseChips'), state.pose);
-      if (state.hopHeight < 0.01) {
-        hop(8.5);
+      if (hop(8.5)) {
         state.jumpPhotoArmed = true;
         sfx.hop();
       }
@@ -266,7 +270,7 @@ function currentMood() {
   if (state.tickle > 0.3) return 'giggly 🤭';
   if (state.purr > 0.3) return 'loving the pets ✨';
   if (state.walking) return 'on a stroll 🐾';
-  if (clingy) return 'clingy 🧡 follows you';
+  if (clingy) return state.pointerType === 'mouse' ? 'clingy 🧡 follows you' : 'clingy 🧡';
   if (happiness > 55) return isNight ? 'cozy 🌙' : 'content ☺';
   if (happiness > 25) return isNight ? 'a bit sleepy' : 'just chillin';
   return 'kinda lonely… pet me?';
@@ -280,7 +284,10 @@ export function updateHud(dt, hour) {
   body.localToWorld(bubbleAnchor);
   bubbleAnchor.project(camera);
   const pop = 1 + Math.max(0, 0.15 - state.bubbleAge) * 2;
-  bubble.style.transform = `translate(${(bubbleAnchor.x * 0.5 + 0.5) * innerWidth}px,${(-bubbleAnchor.y * 0.5 + 0.5) * innerHeight}px) translate(-50%,-100%) scale(${pop})`;
+  const margin = 8;
+  const x = clamp((bubbleAnchor.x * 0.5 + 0.5) * innerWidth, bubbleWidth / 2 + margin, innerWidth - bubbleWidth / 2 - margin);
+  const y = Math.max((-bubbleAnchor.y * 0.5 + 0.5) * innerHeight, bubbleHeight + margin);
+  bubble.style.transform = `translate(${x}px,${y}px) translate(-50%,-100%) scale(${pop})`;
 
   const mood = currentMood();
   if (moodText.textContent !== mood) moodText.textContent = mood;
@@ -291,6 +298,9 @@ export function updateHud(dt, hour) {
   if (clock !== clockText) {
     clockText = clock;
     $('clock').textContent = clock;
-    if (state.autoTime) timeLabel.textContent = formatHour(hour);
+    if (state.autoTime) {
+      timeLabel.textContent = formatHour(hour);
+      timeSlider.value = hour;
+    }
   }
 }

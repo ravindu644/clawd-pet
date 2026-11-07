@@ -36,7 +36,9 @@ export function hop(velocity) {
     state.hopVel = velocity;
     state.squashVel += 2.2;
     joltHat(velocity * 0.5);
+    return true;
   }
+  return false;
 }
 
 export function noteActivity() {
@@ -259,7 +261,6 @@ export function shake() {
 // Quests
 
 export function startQuest(quest) {
-  noteActivity();
   const home = root.position;
   if (quest === 'butterfly') {
     spawnButterfly();
@@ -567,7 +568,6 @@ function updateHop(dt) {
   state.shakeEnergy = Math.max(0, state.shakeEnergy - dt * 160);
   if (state.shakeEnergy > 130) {
     state.shakeEnergy = 0;
-    unlockAudio();
     shake();
   }
 }
@@ -682,7 +682,9 @@ function updateFacing(dt, canWalk) {
   if (butterfly && butterfly.mode !== 'landed' && butterfly.mode !== 'leave') {
     lookPoint.copy(butterfly.group.position);
     looking = true;
-    yaw = butterfly.mode === 'landing' ? yawGroup.rotation.y : Math.atan2(lookPoint.x - position.x, lookPoint.z - position.z);
+    // Directly overhead the direction is meaningless, and tiny movements would flip him round.
+    const overhead = Math.hypot(lookPoint.x - position.x, lookPoint.z - position.z) < 0.6;
+    yaw = butterfly.mode === 'landing' || overhead ? yawGroup.rotation.y : Math.atan2(lookPoint.x - position.x, lookPoint.z - position.z);
   } else if (cookie) {
     lookPoint.copy(cookie.group.position);
     looking = true;

@@ -2,10 +2,14 @@
 import { rand, save, state } from './state.js';
 
 let context = null;
+let unlocked = false;
 let noiseBuffer = null;
 let purrVoice = null;
 
+// Call only from a real user gesture. Browsers hold audio until then, and anything scheduled
+// while held would all play at once on the first tap, so sounds stay silent before this runs.
 export function unlockAudio() {
+  unlocked = true;
   if (!context) {
     try {
       context = new (window.AudioContext || window.webkitAudioContext)();
@@ -14,13 +18,20 @@ export function unlockAudio() {
     }
   }
   if (context && context.state === 'suspended') context.resume().catch(() => {});
-  return context;
 }
 
+const canPlay = () => save.sound && unlocked && context && !document.hidden;
+
+// The frame loop stops in a hidden tab, which would otherwise leave the purr droning at its last volume.
+document.addEventListener('visibilitychange', () => {
+  if (!context) return;
+  if (document.hidden) context.suspend();
+  else if (unlocked) context.resume();
+});
+
 function tone(freq, duration, { type = 'sine', vol = 0.15, slide = 0, delay = 0 } = {}) {
-  if (!save.sound) return;
-  const ctx = unlockAudio();
-  if (!ctx) return;
+  if (!canPlay()) return;
+  const ctx = context;
   const start = ctx.currentTime + delay;
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -36,9 +47,8 @@ function tone(freq, duration, { type = 'sine', vol = 0.15, slide = 0, delay = 0 
 }
 
 function noise(duration, freq, vol, delay = 0) {
-  if (!save.sound) return;
-  const ctx = unlockAudio();
-  if (!ctx) return;
+  if (!canPlay()) return;
+  const ctx = context;
   if (!noiseBuffer) {
     noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.6, ctx.sampleRate);
     const data = noiseBuffer.getChannelData(0);

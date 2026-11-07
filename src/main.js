@@ -7,9 +7,8 @@ import { drawGlyph, GLYPH_FONT, updateParticles, zzzTexture } from './particles.
 import { initPhoto } from './photo.js';
 import { currentHour, damp, save, state } from './state.js';
 import { initUI, persist, syncTimeControls, updateHud } from './ui.js';
-import { camera, centerSkyOnCamera, clock, controls, renderer, scene, updateDayCycle, updateFireflies } from './world.js';
+import { camera, centerSkyOnCamera, clock, controls, renderer, scene, sunLight, updateDayCycle, updateFireflies } from './world.js';
 
-document.getElementById('loading').remove();
 initUI();
 initPhoto();
 initInput();
@@ -25,7 +24,7 @@ window.clawdDebug = {
 };
 
 // Test hooks. esbuild removes this block from the shipped build.
-if (DEV) window.__clawd = { body, camera, controls, drawGlyph, GLYPH_FONT, renderer, root, save, scene, setMode, shake, startQuest, state, walkTo, yawGroup, zzzTexture };
+if (DEV) window.__clawd = { body, camera, controls, drawGlyph, GLYPH_FONT, renderer, root, save, scene, setMode, shake, startQuest, state, sunLight, walkTo, yawGroup, zzzTexture };
 
 setInterval(persist, 4000);
 addEventListener('pagehide', persist);
@@ -47,7 +46,7 @@ function tick(dt) {
   state.time += dt;
   state.modeTime += dt;
   state.bubbleAge += dt;
-  const hour = updateDayCycle(currentHour(), root.position);
+  const hour = updateDayCycle(currentHour());
   const pose = updateBehavior(dt);
   updatePose(dt, pose);
   updateFireflies();
@@ -63,6 +62,7 @@ function tick(dt) {
   updateHud(dt, hour);
 }
 
+document.getElementById('loading').remove();
 renderer.setAnimationLoop(() => {
   tick(Math.min(clock.getDelta(), 0.05));
   renderer.render(scene, camera);

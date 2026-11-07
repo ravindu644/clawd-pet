@@ -125,7 +125,7 @@ export function initInput() {
   addEventListener('pointerup', onPointerEnd);
   addEventListener('pointercancel', onPointerEnd);
   addEventListener('keydown', (event) => {
-    if (event.key === 's' || event.key === 'S') {
+    if ((event.key === 's' || event.key === 'S') && !event.ctrlKey && !event.metaKey && !event.altKey) {
       unlockAudio();
       shake();
     }
