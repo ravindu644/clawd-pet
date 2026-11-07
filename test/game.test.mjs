@@ -542,25 +542,6 @@ test('the wardrobe shows renders of the real items, once', async () => {
   await page.context().close();
 });
 
-test('the interface colour follows the sky and switches at night', async () => {
-  const page = await openGame();
-  const read = () =>
-    page.evaluate(() => ({
-      sky: document.documentElement.style.getPropertyValue('--sky'),
-      night: document.body.classList.contains('night'),
-    }));
-  const noon = await read();
-  await page.evaluate(() => {
-    __clawd.setHour(22);
-    __step(4);
-  });
-  const late = await read();
-  assert.equal(noon.night, false);
-  assert.equal(late.night, true);
-  assert.notEqual(noon.sky, late.sky);
-  await page.context().close();
-});
-
 test('the default view shows sky by day and stars at night', async () => {
   const page = await openGame();
   const view = await page.evaluate(() => {
@@ -662,7 +643,7 @@ test('closed layers stay out of the Tab order', async () => {
   });
   const open = await reachable();
   assert.ok(open.includes('randomFit'));
-  assert.equal(await page.evaluate(() => document.activeElement.textContent), 'Done');
+  assert.equal(await page.evaluate(() => document.activeElement.textContent.toLowerCase()), 'done');
   await page.evaluate(() => document.querySelector('#wearSheet [data-close]').click());
   assert.equal(await page.evaluate(() => document.activeElement.id), 'wearBtn');
   assert.deepEqual(await reachable(), closed, 'a closed sheet should leave the Tab order again');

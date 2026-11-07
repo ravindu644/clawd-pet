@@ -7,7 +7,7 @@ import { buildFace, buildHat, drawOutfitThumbnail, FACE_LINES, FACES, HAT_LINES,
 import { spawnHearts, spawnSprite, starTexture } from './particles.js';
 import { closePhoto, photoIsOpen } from './photo.js';
 import { clamp, currentHour, damp, friendshipLevel, pick, rand, save, state, writeSave } from './state.js';
-import { camera, skyAccent } from './world.js';
+import { camera } from './world.js';
 
 const $ = (id) => document.getElementById(id);
 const bubble = $('bubble');
@@ -39,7 +39,7 @@ export function say(text, seconds = 1.4) {
 
 function refreshStats() {
   $('statTxt').textContent = `♥ ${save.pets} · boops ${save.boops} · 🍪 ${save.treats}`;
-  $('lvl').textContent = 'Lvl ' + friendshipLevel();
+  $('lvl').textContent = 'lvl ' + friendshipLevel();
 }
 
 export function persist() {
@@ -386,7 +386,5 @@ export function updateHud(dt, hour) {
       timeLabel.textContent = formatHour(hour);
       timeSlider.value = hour;
     }
-    document.documentElement.style.setProperty('--sky', skyAccent());
   }
-  document.body.classList.toggle('night', state.isNight);
 }

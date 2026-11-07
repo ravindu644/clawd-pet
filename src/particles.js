@@ -3,7 +3,7 @@ import { BoxGeometry, Mesh, MeshBasicMaterial, RingGeometry, Sprite, SpriteMater
 import { clamp, rand, state } from './state.js';
 import { canvasTexture, FLOOR_Y, scene, standard } from './world.js';
 
-export const GLYPH_FONT = '500 96px Geist, system-ui, sans-serif';
+export const GLYPH_FONT = '800 96px "JetBrains Mono", monospace';
 
 export function drawGlyph(g, text, color) {
   g.clearRect(0, 0, 128, 128);
@@ -42,7 +42,7 @@ export const heartTexture = canvasTexture((g) => {
   g.stroke();
 });
 export const zzzTexture = glyph('z', '#7A6A5A');
-export const noteTexture = glyph('♪', '#2B2118');
+export const noteTexture = glyph('♪', '#D97757');
 export const bangTexture = glyph('!', '#2B2118');
 export const starTexture = canvasTexture((g) => {
   g.fillStyle = '#F2C14E';
@@ -109,7 +109,7 @@ export function spawnCrumb(position, material = cookieCrumb, spread = 1) {
 const rippleGeometry = new RingGeometry(0.16, 0.24, 32);
 
 export function spawnRipple(position) {
-  const ripple = new Mesh(rippleGeometry, new MeshBasicMaterial({ color: 0x141414, transparent: true, opacity: 0.6, depthWrite: false }));
+  const ripple = new Mesh(rippleGeometry, new MeshBasicMaterial({ color: 0xd97757, transparent: true, depthWrite: false }));
   ripple.rotation.x = -Math.PI / 2;
   ripple.position.set(position.x, FLOOR_Y + 0.012, position.z);
   scene.add(ripple);
@@ -152,7 +152,7 @@ export function updateParticles(dt) {
     } else if (p.ripple) {
       const age = 1 - p.life / p.maxLife;
       p.object.scale.setScalar(1 + age * 4);
-      p.object.material.opacity = 0.6 * (1 - age);
+      p.object.material.opacity = 1 - age;
     } else {
       p.vel.y -= p.grav * dt;
       p.vel.x += Math.sin(state.time * 4 + p.seed) * p.sway * dt;

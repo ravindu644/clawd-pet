@@ -35,7 +35,7 @@ Because the character belongs to Anthropic, this repository has no open-source l
 
 ## Credits
 
-Set in [Geist](https://vercel.com/font) by Vercel, under the SIL Open Font License 1.1 (`src/fonts/OFL.txt`). The embedded files are subsets of the Latin set. Three.js is MIT licensed.
+Set in [JetBrains Mono](https://www.jetbrains.com/lp/mono/), under the SIL Open Font License 1.1 (`src/fonts/OFL.txt`). Three.js is MIT licensed.
 
 ## Layout
 
