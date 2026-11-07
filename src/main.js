@@ -6,7 +6,7 @@ import { initInput } from './input.js';
 import { drawGlyph, GLYPH_FONT, updateParticles, zzzTexture } from './particles.js';
 import { initPhoto } from './photo.js';
 import { currentHour, damp, save, state } from './state.js';
-import { initUI, persist, syncTimeControls, updateHud, updateViewShift } from './ui.js';
+import { initUI, persist, say, syncTimeControls, updateHud, updateViewShift } from './ui.js';
 import { camera, centerSkyOnCamera, clock, controls, renderer, scene, sunLight, updateDayCycle, updateFireflies } from './world.js';
 
 initUI();
@@ -20,7 +20,7 @@ function setHour(hour) {
 }
 
 // Test hooks. esbuild removes this block from the shipped build.
-if (DEV) window.__clawd = { setHour, body, camera, controls, drawGlyph, GLYPH_FONT, renderer, root, save, scene, setMode, shake, startQuest, state, sunLight, walkTo, yawGroup, zzzTexture };
+if (DEV) window.__clawd = { setHour, body, camera, controls, drawGlyph, GLYPH_FONT, renderer, root, save, say, scene, setMode, shake, startQuest, state, sunLight, walkTo, yawGroup, zzzTexture };
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) persist();

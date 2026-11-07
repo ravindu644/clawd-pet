@@ -337,19 +337,25 @@ const hatHeight = () => (save.hat === 'wizard' ? 1.1 : save.hat === 'party' ? 0.
 
 // While a sheet is open, slide the view up so Clawd sits in the strip between the status card and
 // the sheet. Otherwise, on a phone, the wardrobe covers the very outfit being tried on.
+const screenY = (y) => (-body.localToWorld(viewCenter.set(0, y, 0)).project(camera).y * 0.5 + 0.5) * innerHeight;
+
 export function updateViewShift(dt) {
-  let target = 0;
+  let shift = 0;
+  let zoom = 1;
   if (openedSheet) {
     const top = hud.getBoundingClientRect().bottom;
     const bottom = innerHeight - openedSheet.offsetHeight;
-    viewCenter.set(0, (BODY_HEIGHT + hatHeight() - LEG_LENGTH) / 2, 0); // Midway from his feet to his hat.
-    body.localToWorld(viewCenter).project(camera);
-    const unshiftedY = (-viewCenter.y * 0.5 + 0.5) * innerHeight + state.viewShift;
-    target = Math.max(0, unshiftedY - (top + bottom) / 2);
+    const feet = screenY(-LEG_LENGTH);
+    const head = screenY(BODY_HEIGHT + 0.25 + hatHeight());
+    // If he is taller than the gap, zoom out until he fits. His screen height scales with zoom.
+    zoom = clamp((camera.zoom * (bottom - top) * 0.9) / Math.max(1, feet - head), 0.5, 1);
+    shift = Math.max(0, (feet + head) / 2 + state.viewShift - (top + bottom) / 2);
   }
-  state.viewShift = state.calm ? target : damp(state.viewShift, target, 8, dt);
+  state.viewShift = state.calm ? shift : damp(state.viewShift, shift, 8, dt);
+  camera.zoom = state.calm ? zoom : damp(camera.zoom, zoom, 8, dt);
   if (state.viewShift > 0.5) camera.setViewOffset(innerWidth, innerHeight, 0, state.viewShift, innerWidth, innerHeight);
   else if (camera.view) camera.clearViewOffset();
+  camera.updateProjectionMatrix();
 }
 
 export function updateHud(dt, hour) {
@@ -361,7 +367,10 @@ export function updateHud(dt, hour) {
   const pop = 1 + Math.max(0, 0.15 - state.bubbleAge) * 2;
   const margin = 8;
   const x = clamp((bubbleAnchor.x * 0.5 + 0.5) * innerWidth, bubbleWidth / 2 + margin, innerWidth - bubbleWidth / 2 - margin);
-  const y = Math.max((-bubbleAnchor.y * 0.5 + 0.5) * innerHeight, bubbleHeight + margin);
+  let y = Math.max((-bubbleAnchor.y * 0.5 + 0.5) * innerHeight, bubbleHeight + margin);
+  // Keep clear of the status card when the bubble would sit across it.
+  const card = hud.getBoundingClientRect();
+  if (!state.photoMode && x - bubbleWidth / 2 < card.right + margin) y = Math.max(y, card.bottom + margin + bubbleHeight);
   bubble.style.transform = `translate(${x}px,${y}px) translate(-50%,-100%) scale(${pop})`;
 
   const mood = currentMood();

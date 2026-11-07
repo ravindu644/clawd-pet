@@ -27,6 +27,12 @@ npx playwright-core install chromium-headless-shell
 
 Set `CHROME_PATH` to use a browser you already have.
 
+## Not affiliated with Anthropic
+
+This is an independent, unofficial fan project. It is not affiliated with, sponsored by or endorsed by Anthropic. The Clawd character is the property of Anthropic, and "Claude" and "Clawd" are trademarks of Anthropic.
+
+Because the character belongs to Anthropic, this repository has no open-source licence. Keep that in mind before you fork or reuse it.
+
 ## Credits
 
 Set in [Geist](https://vercel.com/font) by Vercel, under the SIL Open Font License 1.1 (`src/fonts/OFL.txt`). The embedded files are subsets of the Latin set. Three.js is MIT licensed.

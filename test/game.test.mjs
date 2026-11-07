@@ -158,6 +158,8 @@ test('the speech bubble uses the camera from the frame being drawn', async () =>
   await page.evaluate(() => {
     const { body, camera, renderer, root, state } = __clawd;
     state.nextFidget = 99;
+    // This checks timing, not layout, so take the status card out of the bubble's way.
+    document.querySelector('.hud').style.display = 'none';
     root.position.set(2.2, 0, 0);
     __step(150);
     const Vector = camera.position.constructor;
@@ -743,7 +745,7 @@ test('the shipped file plays through every feature offline', async () => {
   await context.close();
 });
 
-test('on a phone, an open wardrobe leaves Clawd in view above it', async () => {
+test('on a phone, an open sheet leaves Clawd in view above it', async () => {
   const page = await openGame({ viewport: { width: 390, height: 844 }, save: { hat: 'wizard' } });
   const measure = () =>
     page.evaluate(() => {
@@ -756,20 +758,57 @@ test('on a phone, an open wardrobe leaves Clawd in view above it', async () => {
         feet: toScreen(-0.42),
         sheetTop: sheet ? innerHeight - sheet.offsetHeight : innerHeight,
         shift: __clawd.state.viewShift,
+        zoom: __clawd.camera.zoom,
       };
     });
-  await page.evaluate(() => {
-    __clawd.state.nextFidget = 99;
-    document.getElementById('wearBtn').click();
-    __step(90);
-  });
-  const open = await measure();
-  assert.ok(open.hatTop > 0 && open.feet < open.sheetTop, JSON.stringify(open));
+  const cardBottom = await page.evaluate(() => document.querySelector('.hud').getBoundingClientRect().bottom);
+  for (const button of ['wearBtn', 'moreBtn']) {
+    await page.evaluate((id) => {
+      __clawd.state.nextFidget = 99;
+      document.querySelector('.sheet.open [data-close]')?.click();
+      document.getElementById(id).click();
+      __step(120);
+    }, button);
+    const open = await measure();
+    assert.ok(open.hatTop >= cardBottom - 2 && open.feet <= open.sheetTop + 2, `${button}: ${JSON.stringify(open)}`);
+  }
   await page.evaluate(() => {
     document.querySelector('#wearSheet [data-close]').click();
     __step(90);
   });
   const closed = await measure();
-  assert.ok(closed.shift < 0.5, `view still shifted by ${closed.shift}`);
+  assert.ok(closed.shift < 0.5 && closed.zoom > 0.99, `view still shifted by ${closed.shift}, zoom ${closed.zoom}`);
+  await page.context().close();
+});
+
+test('settings carry the fan-project disclaimer and a link to the source', async () => {
+  const page = await openGame();
+  const about = await page.evaluate(() => ({
+    text: document.getElementById('about').textContent,
+    href: document.getElementById('sourceLink').href,
+    rel: document.getElementById('sourceLink').rel,
+  }));
+  assert.match(about.text, /not affiliated with.*Anthropic/);
+  assert.match(about.text, /trademarks of Anthropic/);
+  assert.equal(about.href, 'https://github.com/ravindu644/clawd-pet');
+  assert.equal(about.rel, 'noopener');
+  await page.context().close();
+});
+
+test('the speech bubble never covers the status card', async () => {
+  const page = await openGame({ viewport: { width: 390, height: 844 }, save: { hat: 'wizard' } });
+  const overlap = await page.evaluate(() => {
+    __clawd.state.nextFidget = 99;
+    document.getElementById('moreBtn').click();
+    __step(90);
+    __clawd.say('hi! i am Clawd 👋', 5);
+    __step(2);
+    const card = document.querySelector('.hud').getBoundingClientRect();
+    const bubble = document.getElementById('bubble').getBoundingClientRect();
+    const across = Math.min(card.right, bubble.right) - Math.max(card.left, bubble.left);
+    const down = Math.min(card.bottom, bubble.bottom) - Math.max(card.top, bubble.top);
+    return across > 0 && down > 0 ? { card, bubble } : null;
+  });
+  assert.equal(overlap, null, JSON.stringify(overlap));
   await page.context().close();
 });
