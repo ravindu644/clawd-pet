@@ -768,7 +768,7 @@ function updateModeAnimation(dt, pose) {
     }
   } else if (mode === 'spin') {
     const progress = Math.min(1, modeTime / 0.75);
-    root.rotation.y = easeOutCubic(progress) * Math.PI * 2;
+    if (!state.calm) root.rotation.y = easeOutCubic(progress) * Math.PI * 2;
     if (modeTime > 1.1) {
       setMode('idle');
       say('hmph.');

@@ -5,6 +5,7 @@ import { dismissButterfly, enterPhotoMode, giveTreat, hop, noteActivity, startDa
 import { BODY_HEIGHT, body, wearFace, wearHat, worldPoint } from './clawd.js';
 import { buildFace, buildHat, drawOutfitThumbnail, FACE_LINES, FACES, HAT_LINES, HATS } from './outfits.js';
 import { spawnHearts, spawnSprite, starTexture } from './particles.js';
+import { closePhoto, photoIsOpen } from './photo.js';
 import { clamp, currentHour, friendshipLevel, pick, rand, save, state, writeSave } from './state.js';
 import { camera, skyAccent } from './world.js';
 
@@ -57,15 +58,27 @@ export const formatHour = (hour) => {
   return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
 };
 
+let focusBeforeSheet = null;
+
 function openSheet(id) {
   closeSheets();
-  $(id).classList.add('open');
+  focusBeforeSheet = document.activeElement;
+  const sheet = $(id);
+  sheet.classList.add('open');
+  sheet.inert = false;
   scrim.classList.add('show');
+  sheet.querySelector('[data-close]').focus({ preventScroll: true });
 }
 
 function closeSheets() {
-  document.querySelectorAll('.sheet').forEach((sheet) => sheet.classList.remove('open'));
+  const wasOpen = scrim.classList.contains('show');
+  document.querySelectorAll('.sheet').forEach((sheet) => {
+    sheet.classList.remove('open');
+    sheet.inert = true;
+  });
   scrim.classList.remove('show');
+  if (wasOpen && focusBeforeSheet) focusBeforeSheet.focus({ preventScroll: true });
+  return wasOpen;
 }
 
 function selectChip(container, id) {
@@ -190,12 +203,24 @@ const FRAMES = [
   ['clean', 'Clean', '⬜'],
 ];
 
+function setPhotoLayer(on) {
+  document.body.classList.toggle('photo', on);
+  $('photoUI').inert = !on;
+  document.querySelector('.controls').inert = on;
+}
+
 function exitPhotoMode() {
+  setPhotoLayer(false);
   state.photoMode = false;
   state.jumpPhotoArmed = false;
   state.pose = 'none';
   selectChip($('poseChips'), 'none');
-  document.body.classList.remove('photo');
+}
+
+function onEscape() {
+  if (photoIsOpen()) closePhoto();
+  else if (closeSheets()) return;
+  else if (state.photoMode) exitPhotoMode();
 }
 
 export function initUI() {
@@ -273,10 +298,13 @@ export function initUI() {
   $('guide').classList.toggle('show', state.frame === 'polaroid');
   $('photoBtn').addEventListener('click', () => {
     closeSheets();
-    document.body.classList.add('photo');
+    setPhotoLayer(true);
     enterPhotoMode();
   });
   $('exitPhoto').addEventListener('click', exitPhotoMode);
+  addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') onEscape();
+  });
 }
 
 function currentMood() {

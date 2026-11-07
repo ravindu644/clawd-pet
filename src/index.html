@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pet Clawd</title>
 <!-- css -->
 </head>
@@ -17,25 +17,25 @@
   <div id="stats"><span id="statTxt"></span><span id="clock"></span></div>
 </div>
 
-<div id="bubble"></div>
+<div id="bubble" aria-live="polite"></div>
 <div id="hint" class="panel">Stroke him · boop him · tap the rug to call him</div>
 
 <div class="controls panel">
-  <button class="ib primary" id="treatBtn"><b>🍪</b><small>Treat</small></button>
-  <button class="ib" id="danceBtn"><b>🎶</b><small>Dance</small></button>
-  <button class="ib" id="wearBtn"><b>👒</b><small>Wear</small></button>
-  <button class="ib" id="photoBtn"><b>📸</b><small>Photo</small></button>
-  <button class="ib" id="moreBtn"><b>⚙️</b><small>More</small></button>
+  <button class="ib primary" id="treatBtn"><b aria-hidden="true">🍪</b><small>Treat</small></button>
+  <button class="ib" id="danceBtn"><b aria-hidden="true">🎶</b><small>Dance</small></button>
+  <button class="ib" id="wearBtn"><b aria-hidden="true">👒</b><small>Wear</small></button>
+  <button class="ib" id="photoBtn"><b aria-hidden="true">📸</b><small>Photo</small></button>
+  <button class="ib" id="moreBtn"><b aria-hidden="true">⚙️</b><small>More</small></button>
 </div>
 
 <div id="scrim"></div>
-<div class="sheet panel" id="wearSheet">
+<div class="sheet panel" id="wearSheet" role="dialog" aria-label="Wardrobe" inert>
   <h2>Wardrobe <button data-close>Done</button></h2>
   <h3>Hats</h3><div class="chips" id="hatChips"></div>
   <h3>Face and extras</h3><div class="chips" id="faceChips"></div>
   <div class="row" style="margin-top:12px"><button class="secondary" id="randomFit">🎲 Pick for him</button></div>
 </div>
-<div class="sheet panel" id="moreSheet">
+<div class="sheet panel" id="moreSheet" role="dialog" aria-label="Settings" inert>
   <h2>Settings <button data-close>Done</button></h2>
   <h3>Time of day</h3>
   <div class="row"><button id="autoTime" class="secondary">⏱ Auto</button><input type="range" id="timeSlider" min="0" max="24" step="0.25" aria-label="Time of day"><span id="timeLabel">12:00</span></div>
@@ -48,7 +48,7 @@
 </div>
 
 <div id="guide"></div>
-<div id="photoUI">
+<div id="photoUI" inert>
   <div id="photoTop"><div class="panel tag">📸 Photo mode</div><button class="pi" id="exitPhoto">Exit</button></div>
   <div id="photoBottom">
     <div class="chips pi" id="poseChips"></div>

@@ -145,13 +145,15 @@ export function takePhoto() {
   }
   $('photoImg').src = state.photoUrl;
 
-  const flash = $('flash');
-  flash.style.transition = 'none';
-  flash.style.opacity = '1';
-  requestAnimationFrame(() => {
-    flash.style.transition = 'opacity .6s';
-    flash.style.opacity = '0';
-  });
+  if (!state.calm) {
+    const flash = $('flash');
+    flash.style.transition = 'none';
+    flash.style.opacity = '1';
+    requestAnimationFrame(() => {
+      flash.style.transition = 'opacity .6s';
+      flash.style.opacity = '0';
+    });
+  }
   sfx.shutter();
   save.photos++;
   addBond(2);
@@ -171,11 +173,14 @@ function savePhoto() {
   } catch {}
 }
 
+export const closePhoto = () => $('modal').classList.remove('show');
+export const photoIsOpen = () => $('modal').classList.contains('show');
+
 export function initPhoto() {
   $('shutter').addEventListener('click', () => {
     unlockAudio();
     takePhoto();
   });
-  $('closePhoto').addEventListener('click', () => $('modal').classList.remove('show'));
+  $('closePhoto').addEventListener('click', closePhoto);
   $('savePhoto').addEventListener('click', savePhoto);
 }

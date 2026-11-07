@@ -57,6 +57,8 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = PCFSoftShadowMap;
 renderer.toneMapping = ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
+renderer.domElement.setAttribute('aria-label', 'Clawd, a small orange creature, on his rug');
+renderer.domElement.setAttribute('role', 'img');
 document.getElementById('stage').appendChild(renderer.domElement);
 
 export const canvas = renderer.domElement;

@@ -59,8 +59,8 @@ function freezeTime() {
   };
 }
 
-async function openGame({ viewport = { width: 480, height: 360 }, save = {} } = {}) {
-  const context = await browser.newContext({ viewport });
+async function openGame({ viewport = { width: 480, height: 360 }, save = {}, reducedMotion = 'no-preference' } = {}) {
+  const context = await browser.newContext({ viewport, reducedMotion });
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
@@ -590,5 +590,113 @@ test('at night his shadow falls away from the lamp', async () => {
     return light.x * (2.5 / Math.hypot(2.5, 2.9)) + light.z * (-2.9 / Math.hypot(2.5, 2.9));
   });
   assert.ok(towardLamp > 0.9, `light direction lines up with the lamp at ${towardLamp.toFixed(2)}`);
+  await page.context().close();
+});
+
+test('the page allows zooming', async () => {
+  const page = await openGame();
+  const meta = await page.getAttribute('meta[name=viewport]', 'content');
+  assert.doesNotMatch(meta, /user-scalable|maximum-scale/);
+  await page.context().close();
+});
+
+test('reduced motion removes the spin, sway and flash', async () => {
+  const page = await openGame({ reducedMotion: 'reduce' });
+  const result = await page.evaluate(() => {
+    const { root, setMode, state } = __clawd;
+    setMode('spin');
+    __step(20);
+    const spin = root.rotation.y;
+    setMode('dizzy');
+    __step(40);
+    const sway = state.sway;
+    document.getElementById('photoBtn').click();
+    document.getElementById('shutter').click();
+    return { spin, sway, flash: document.getElementById('flash').style.opacity };
+  });
+  assert.equal(result.spin, 0);
+  assert.ok(Math.abs(result.sway) < 0.001, `sway ${result.sway}`);
+  assert.notEqual(result.flash, '1');
+  await page.context().close();
+});
+
+test('Esc closes the photo, then sheets, then photo mode', async () => {
+  const page = await openGame();
+  const result = await page.evaluate(() => {
+    const press = () => dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    const open = (id) => document.getElementById(id).classList.contains('open');
+    document.getElementById('wearBtn').click();
+    const sheetOpened = open('wearSheet');
+    press();
+    const sheetClosed = !open('wearSheet');
+    document.getElementById('photoBtn').click();
+    document.getElementById('shutter').click();
+    __step(30);
+    const modal = document.getElementById('modal');
+    const modalOpened = modal.classList.contains('show');
+    press();
+    const modalClosed = !modal.classList.contains('show');
+    const stillInPhotoMode = __clawd.state.photoMode;
+    press();
+    return { sheetOpened, sheetClosed, modalOpened, modalClosed, stillInPhotoMode, leftPhotoMode: !__clawd.state.photoMode };
+  });
+  assert.ok(Object.values(result).every(Boolean), JSON.stringify(result));
+  await page.context().close();
+});
+
+test('closed layers stay out of the Tab order', async () => {
+  const page = await openGame();
+  const reachable = async () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll('button,input')].filter((element) => !element.closest('[inert]') && !element.closest('#modal')).map((element) => element.id || element.textContent.trim()),
+    );
+  const closed = await reachable();
+  assert.deepEqual(closed, ['treatBtn', 'danceBtn', 'wearBtn', 'photoBtn', 'moreBtn']);
+  // A keyboard user has the button focused when they press it.
+  await page.evaluate(() => {
+    const button = document.getElementById('wearBtn');
+    button.focus();
+    button.click();
+  });
+  const open = await reachable();
+  assert.ok(open.includes('randomFit'));
+  assert.equal(await page.evaluate(() => document.activeElement.textContent), 'Done');
+  await page.evaluate(() => document.querySelector('#wearSheet [data-close]').click());
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'wearBtn');
+  await page.context().close();
+});
+
+test('every control is a comfortable tap target on a phone', async () => {
+  const page = await openGame({ viewport: { width: 390, height: 844 } });
+  const short = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll('button,input')]
+        .filter((element) => !element.closest('[inert]') && element.offsetParent)
+        .filter((element) => element.getBoundingClientRect().height < 43.5) // Sub-pixel rounding from centred transforms.
+        .map((element) => element.id || element.textContent.trim()),
+    );
+  assert.deepEqual(await short(), []);
+  for (const id of ['wearBtn', 'moreBtn']) {
+    await page.evaluate((button) => document.getElementById(button).click(), id);
+    assert.deepEqual(await short(), []);
+    await page.evaluate(() => document.querySelector('.sheet.open [data-close]').click());
+  }
+  await page.evaluate(() => document.getElementById('photoBtn').click());
+  assert.deepEqual(await short(), []);
+  await page.context().close();
+});
+
+test('every photo frame produces a picture', async () => {
+  const page = await openGame();
+  const sizes = await page.evaluate(() => {
+    document.getElementById('photoBtn').click();
+    return ['polaroid', 'retro', 'clean'].map((frame) => {
+      document.querySelector(`#frameChips [data-id=${frame}]`).click();
+      document.getElementById('shutter').click();
+      return document.getElementById('photoImg').src.length;
+    });
+  });
+  assert.ok(sizes.every((size) => size > 10000), sizes.join());
+  assert.equal(new Set(sizes).size, 3);
   await page.context().close();
 });

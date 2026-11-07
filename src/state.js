@@ -114,6 +114,10 @@ export const state = {
   photoUrl: '',
 };
 
+const calmQuery = matchMedia('(prefers-reduced-motion: reduce)');
+state.calm = calmQuery.matches;
+calmQuery.addEventListener('change', (event) => (state.calm = event.matches));
+
 export const save = {
   boops: 0,
   pets: 0,

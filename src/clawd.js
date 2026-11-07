@@ -226,7 +226,7 @@ export function updatePose(dt, pose) {
   sway += state.tickle * Math.sin(time * 22) * 0.05;
   if (state.walking) sway += Math.sin(state.stride) * 0.05;
   if (state.motionSeen) sway += clamp(-state.tiltX * 0.015, -0.12, 0.12);
-  state.sway = damp(state.sway, sway, 20, dt);
+  state.sway = damp(state.sway, state.calm ? 0 : sway, 20, dt);
   yawGroup.rotation.z = state.sway;
 
   tripPivot.rotation.x = damp(tripPivot.rotation.x, trip, trip > 0 ? 14 : 4, dt);
