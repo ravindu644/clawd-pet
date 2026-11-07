@@ -27,6 +27,10 @@ npx playwright-core install chromium-headless-shell
 
 Set `CHROME_PATH` to use a browser you already have.
 
+## Credits
+
+Set in [Geist](https://vercel.com/font) by Vercel, under the SIL Open Font License 1.1 (`src/fonts/OFL.txt`). The embedded files are subsets of the Latin set. Three.js is MIT licensed.
+
 ## Layout
 
 | File | What it holds |

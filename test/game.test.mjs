@@ -663,6 +663,7 @@ test('closed layers stay out of the Tab order', async () => {
   assert.equal(await page.evaluate(() => document.activeElement.textContent), 'Done');
   await page.evaluate(() => document.querySelector('#wearSheet [data-close]').click());
   assert.equal(await page.evaluate(() => document.activeElement.id), 'wearBtn');
+  assert.deepEqual(await reachable(), closed, 'a closed sheet should leave the Tab order again');
   await page.context().close();
 });
 
@@ -699,4 +700,45 @@ test('every photo frame produces a picture', async () => {
   assert.ok(sizes.every((size) => size > 10000), sizes.join());
   assert.equal(new Set(sizes).size, 3);
   await page.context().close();
+});
+
+test('the shipped file plays through every feature offline', async () => {
+  const context = await browser.newContext({ viewport: { width: 1000, height: 700 }, acceptDownloads: true });
+  await context.setOffline(true);
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto(SHIPPED_BUILD);
+  await page.waitForTimeout(800);
+  const click = (selector) => page.click(selector);
+  await click('#treatBtn');
+  await page.waitForTimeout(2500);
+  await click('#danceBtn');
+  await page.waitForTimeout(800);
+  await click('#wearBtn');
+  await click('#hatChips [data-id=crown]');
+  await click('#faceChips [data-id=bowtie]');
+  await click('#randomFit');
+  await click('#wearSheet [data-close]');
+  await click('#moreBtn');
+  await page.fill('#timeSlider', '22');
+  await page.dispatchEvent('#timeSlider', 'input');
+  await click('#soundBtn');
+  await click('#autoTime');
+  await click('#moreSheet [data-close]');
+  await click('#photoBtn');
+  for (const frame of ['polaroid', 'retro', 'clean']) {
+    await click(`#frameChips [data-id=${frame}]`);
+    await click('#shutter');
+    await page.waitForSelector('#modal.show');
+    const [download] = await Promise.all([page.waitForEvent('download'), click('#savePhoto')]);
+    assert.match(download.suggestedFilename(), /^clawd-.*\.png$/);
+    await click('#closePhoto');
+  }
+  await click('#exitPhoto');
+  const saved = JSON.parse(await page.evaluate(() => localStorage.getItem('clawd-pet-v1')));
+  assert.equal(saved.treats, 1);
+  assert.equal(saved.photos, 3);
+  assert.deepEqual(errors, []);
+  await context.close();
 });
