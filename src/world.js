@@ -90,7 +90,7 @@ function fitCamera() {
   if (framingDistance) {
     camera.position.sub(controls.target).multiplyScalar(distance / framingDistance).add(controls.target);
   } else {
-    camera.position.copy(controls.target).addScaledVector(new Vector3(0.18, 0.38, 1).normalize(), distance);
+    camera.position.copy(controls.target).addScaledVector(new Vector3(0.18, 0.2, 1).normalize(), distance);
   }
   framingDistance = distance;
   controls.minDistance = distance * 0.45;
@@ -118,7 +118,7 @@ const sky = new Mesh(
     vertexShader: `varying vec3 vW;
     void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz-cameraPosition; gl_Position=projectionMatrix*viewMatrix*w; }`,
     fragmentShader: `uniform vec3 top; uniform vec3 bottom; varying vec3 vW;
-    void main(){ float h=normalize(vW).y; gl_FragColor=vec4(mix(bottom,top,smoothstep(-0.02,0.3,h)),1.0);
+    void main(){ float h=normalize(vW).y; gl_FragColor=vec4(mix(bottom,top,smoothstep(0.0,0.14,h)),1.0);
     #include <colorspace_fragment>
     }`,
   }),
@@ -129,7 +129,7 @@ scene.add(sky);
 
 const starPositions = [];
 for (let i = 0; i < 450; i++) {
-  const y = rand(0.06, 1);
+  const y = rand(0.15, 1) ** 2; // Squared to crowd them low, where the default view can see them.
   const angle = rand(0, Math.PI * 2);
   const radius = 60;
   const ring = Math.sqrt(1 - y * y);
@@ -204,10 +204,14 @@ scene.add(sunLight.target);
 const backLight = new DirectionalLight(0xffcfb3, 0.9);
 backLight.position.set(-5, 4, -6);
 scene.add(backLight);
+// With the night light behind him, this keeps his face readable. No shadows, so it adds no second one.
+const nightFill = new DirectionalLight(0xffd2ad, 0);
+nightFill.position.set(1, 2, 6);
+scene.add(nightFill);
 
 // Ground and rug
 
-const ground = new Mesh(new CircleGeometry(50, 64), standard(0xeee5d7, { roughness: 1 }));
+const ground = new Mesh(new CircleGeometry(50, 64), standard(0xc4d3a6, { roughness: 1 }));
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
@@ -276,8 +280,9 @@ const fireflyGroup = new Group();
 scene.add(fireflyGroup);
 const fireflies = [];
 for (let i = 0; i < 14; i++) {
-  const sprite = new Sprite(new SpriteMaterial({ map: glowTexture, color: 0xd9f27a, blending: AdditiveBlending, transparent: true, depthWrite: false, opacity: 0, fog: false }));
-  sprite.scale.setScalar(0.24);
+  // Normal blending, not additive: over a lit floor additive light clips straight to white.
+  const sprite = new Sprite(new SpriteMaterial({ map: glowTexture, color: 0xe3f06a, transparent: true, depthWrite: false, opacity: 0, fog: false, toneMapped: false }));
+  sprite.scale.setScalar(0.2);
   fireflyGroup.add(sprite);
   fireflies.push({ sprite, angle: rand(0, 6.28), radius: rand(2.8, 5), height: rand(0.3, 1.8), speed: rand(0.08, 0.25), phase: rand(0, 6) });
 }
@@ -319,6 +324,8 @@ const SKY_DAY = new Color('#FFF6EA');
 const SKY_NIGHT = new Color('#93A2DC');
 const FLOOR_DAY = new Color('#D6C4AE');
 const FLOOR_NIGHT = new Color('#545978');
+// At night the main light comes from behind the lamp, so shadows fall away from its glow.
+const NIGHT_LIGHT_DIR = new Vector3(2.5, 3, -2.9).normalize();
 const sunDir = new Vector3();
 const moonDir = new Vector3();
 const lightDir = new Vector3();
@@ -342,9 +349,7 @@ export function updateDayCycle(hour) {
   moonDir.set(-Math.cos(moonAngle), Math.sin(moonAngle), 0.55).normalize();
   const sunLightDir = sunDir.clone();
   sunLightDir.y = Math.max(sunLightDir.y, 0.3);
-  const moonLightDir = moonDir.clone();
-  moonLightDir.y = Math.max(moonLightDir.y, 0.35);
-  lightDir.copy(moonLightDir).lerp(sunLightDir, state.day).normalize();
+  lightDir.copy(NIGHT_LIGHT_DIR).lerp(sunLightDir, state.day).normalize();
   // The light stays put as he walks. A moving shadow camera makes every static shadow shimmer.
   sunLight.position.copy(lightDir).multiplyScalar(12);
 
@@ -355,6 +360,7 @@ export function updateDayCycle(hour) {
   skyLight.groundColor.copy(FLOOR_DAY).lerp(FLOOR_NIGHT, state.night);
   skyLight.intensity = 1.15 * state.day + 1.5 * state.night;
   backLight.intensity = 0.9 * state.day + 0.25 * state.night;
+  nightFill.intensity = 1.1 * state.night;
 
   sun.material.opacity = smoothstep(sunDir.y, -0.08, 0.05);
   sun.material.color.copy(scratchColor.set('#FFF1D6').lerp(SUNSET, lowSun));
@@ -362,7 +368,7 @@ export function updateDayCycle(hour) {
   starMaterial.opacity = smoothstep(state.night, 0.4, 1) * 0.9;
   lampLight.intensity = state.night * 18;
   shadeMaterial.emissiveIntensity = state.night * 1.4;
-  lampGlow.material.opacity = state.night * 0.85;
+  lampGlow.material.opacity = state.night * 0.5;
   return hour;
 }
 

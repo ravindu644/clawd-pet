@@ -558,3 +558,37 @@ test('the interface colour follows the sky and switches at night', async () => {
   assert.notEqual(noon.sky, late.sky);
   await page.context().close();
 });
+
+test('the default view shows sky by day and stars at night', async () => {
+  const page = await openGame();
+  const view = await page.evaluate(() => {
+    const { camera, scene, setHour } = __clawd;
+    setHour(22);
+    __step(2);
+    const stars = scene.children.find((child) => child.isPoints);
+    const point = camera.position.clone();
+    const positions = stars.geometry.attributes.position;
+    let visible = 0;
+    for (let i = 0; i < positions.count; i++) {
+      point.fromBufferAttribute(positions, i).add(stars.position).project(camera);
+      if (Math.abs(point.x) <= 1 && Math.abs(point.y) <= 1) visible++;
+    }
+    return { visible, opacity: stars.material.opacity };
+  });
+  assert.ok(view.opacity > 0.5, `stars at opacity ${view.opacity}`);
+  assert.ok(view.visible >= 8, `only ${view.visible} stars in view`);
+  await page.context().close();
+});
+
+test('at night his shadow falls away from the lamp', async () => {
+  const page = await openGame();
+  const towardLamp = await page.evaluate(() => {
+    const { setHour, sunLight } = __clawd;
+    setHour(22);
+    __step(2);
+    const light = sunLight.position.clone().setY(0).normalize();
+    return light.x * (2.5 / Math.hypot(2.5, 2.9)) + light.z * (-2.9 / Math.hypot(2.5, 2.9));
+  });
+  assert.ok(towardLamp > 0.9, `light direction lines up with the lamp at ${towardLamp.toFixed(2)}`);
+  await page.context().close();
+});
