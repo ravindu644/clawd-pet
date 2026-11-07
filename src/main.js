@@ -1,9 +1,9 @@
 // Boot and the frame loop.
 import { updatePurr } from './audio.js';
-import { greet, shake, startQuest, updateBehavior, walkTo } from './behavior.js';
+import { greet, setMode, shake, startQuest, updateBehavior, walkTo } from './behavior.js';
 import { body, root, updatePose, yawGroup } from './clawd.js';
 import { initInput } from './input.js';
-import { updateParticles } from './particles.js';
+import { drawGlyph, GLYPH_FONT, updateParticles, zzzTexture } from './particles.js';
 import { initPhoto } from './photo.js';
 import { currentHour, damp, save, state } from './state.js';
 import { initUI, persist, syncTimeControls, updateHud } from './ui.js';
@@ -25,7 +25,7 @@ window.clawdDebug = {
 };
 
 // Test hooks. esbuild removes this block from the shipped build.
-if (DEV) window.__clawd = { body, camera, controls, renderer, root, save, scene, shake, startQuest, state, walkTo, yawGroup };
+if (DEV) window.__clawd = { body, camera, controls, drawGlyph, GLYPH_FONT, renderer, root, save, scene, setMode, shake, startQuest, state, walkTo, yawGroup, zzzTexture };
 
 setInterval(persist, 4000);
 addEventListener('pagehide', persist);

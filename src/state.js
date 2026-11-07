@@ -1,6 +1,6 @@
 // Shared mutable game state, the save file, and small maths helpers.
 // This module imports no game code, so anything can depend on it.
-import { MathUtils, Vector2 } from 'three';
+import { MathUtils, Vector2, Vector3 } from 'three';
 
 export const SAVE_KEY = 'clawd-pet-v1';
 
@@ -93,6 +93,7 @@ export const state = {
   tripFell: false,
   tripFellAt: 0,
   sneezeStep: 0,
+  recoil: new Vector3(),
 
   // Shaking
   dizzyStars: [],

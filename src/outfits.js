@@ -3,7 +3,7 @@ import {
   ConeGeometry, CylinderGeometry, Group, IcosahedronGeometry, Mesh, MeshStandardMaterial, OctahedronGeometry,
   PlaneGeometry, TorusGeometry, Vector3,
 } from 'three';
-import { canvasTexture, leafMaterial, roundedBox, standard, stemMaterial } from './world.js';
+import { canvasTexture, disposeObject, leafMaterial, roundedBox, standard, stemMaterial } from './world.js';
 
 export const HATS = [
   ['none', 'None', '∅'],
@@ -71,6 +71,8 @@ const partyStripes = canvasTexture((g) => {
     g.fillRect(0, i * 16, 128, 16);
   }
 });
+
+export const disposeOutfit = (outfit) => disposeObject(outfit, [gold, dark, leafMaterial, stemMaterial]);
 
 export function buildHat(id) {
   const hat = new Group();

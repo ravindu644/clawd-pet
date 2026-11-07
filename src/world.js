@@ -32,6 +32,14 @@ export function roundedBox(width, height, depth, material, x = 0, y = 0, z = 0) 
   return mesh;
 }
 
+// Frees an object's GPU buffers. Materials shared with other objects go in `keep`.
+export function disposeObject(object, keep = []) {
+  object.traverse((child) => {
+    if (child.geometry) child.geometry.dispose();
+    if (child.material && !keep.includes(child.material)) child.material.dispose();
+  });
+}
+
 export const renderer = new WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
@@ -59,26 +67,32 @@ controls.rotateSpeed = 0.7;
 export const raycaster = new Raycaster();
 export const clock = new Clock();
 
-function fitCamera(placeCamera) {
+let framingDistance = 0;
+
+// Picks the distance that fits him for this screen shape, keeping the viewer's angle and relative zoom.
+function fitCamera() {
   const aspect = innerWidth / innerHeight;
   camera.aspect = aspect;
   camera.fov = aspect < 0.8 ? 50 : 38;
   camera.updateProjectionMatrix();
-  if (placeCamera) {
-    const halfV = MathUtils.degToRad(camera.fov / 2);
-    const halfH = Math.atan(Math.tan(halfV) * aspect);
-    const distance = Math.max(2.5 / Math.tan(halfH), 2.9 / Math.tan(halfV));
+  const halfV = MathUtils.degToRad(camera.fov / 2);
+  const halfH = Math.atan(Math.tan(halfV) * aspect);
+  const distance = Math.max(2.5 / Math.tan(halfH), 2.9 / Math.tan(halfV));
+  if (framingDistance) {
+    camera.position.sub(controls.target).multiplyScalar(distance / framingDistance).add(controls.target);
+  } else {
     camera.position.copy(controls.target).addScaledVector(new Vector3(0.18, 0.38, 1).normalize(), distance);
-    controls.minDistance = distance * 0.45;
-    controls.maxDistance = Math.max(distance * 1.7, 13);
   }
+  framingDistance = distance;
+  controls.minDistance = distance * 0.45;
+  controls.maxDistance = Math.max(distance * 1.7, 13);
   const guide = Math.min(innerWidth, innerHeight) * 0.9;
   Object.assign(document.getElementById('guide').style, { width: guide + 'px', height: guide + 'px' });
 }
-fitCamera(true);
+fitCamera();
 addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
-  fitCamera(false);
+  fitCamera();
 });
 
 // Sky
@@ -238,7 +252,6 @@ lamp.add(roundedBox(0.55, 0.08, 0.55, lampMetal, 0, 0.04, 0), roundedBox(0.07, 2
 const shadeMaterial = standard(0xf6e3c2, { roughness: 0.8, emissive: 0xffb061, emissiveIntensity: 0, side: DoubleSide });
 const shade = new Mesh(new CylinderGeometry(0.28, 0.46, 0.45, 6, 1, true), shadeMaterial);
 shade.position.y = 2.2;
-shade.castShadow = true;
 lamp.add(shade);
 const lampLight = new PointLight(0xffb566, 0, 14, 1.2);
 lampLight.position.y = 1.95;

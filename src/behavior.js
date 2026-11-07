@@ -14,13 +14,14 @@ import {
   clamp, damp, dampAngle, easeOutCubic, friendshipLevel, loaded, pick, rand, save, state, wrapAngle,
 } from './state.js';
 import { dismissHint, persist, say } from './ui.js';
-import { camera, canvasTexture, FLOOR_Y, raycaster, RUG_RADIUS, scene, standard } from './world.js';
+import { camera, canvasTexture, disposeObject, FLOOR_Y, raycaster, RUG_RADIUS, scene, standard } from './world.js';
 
 const WALK_LIMIT = 2.2;
 const QUESTS = ['trip', 'sneeze', 'stargaze', 'yawn'];
 
 export function setMode(mode) {
   if (state.mode === 'dizzy' && mode !== 'dizzy') clearDizzyStars();
+  root.rotation.y = 0;
   state.mode = mode;
   state.modeTime = 0;
 }
@@ -75,13 +76,18 @@ function fallAsleep() {
   say(state.isNight ? "g'night… 🌙" : 'zzz…', 2);
 }
 
-export function walkTo(x, z, speed = 1.4, stop = 0.05) {
-  const distance = Math.hypot(x, z);
+// He stays inside this circle, which is what keeps him out of the plants on the rim.
+function clampToWalkArea(position) {
+  const distance = Math.hypot(position.x, position.z);
   if (distance > WALK_LIMIT) {
-    x *= WALK_LIMIT / distance;
-    z *= WALK_LIMIT / distance;
+    position.x *= WALK_LIMIT / distance;
+    position.z *= WALK_LIMIT / distance;
   }
-  (state.walkTarget || (state.walkTarget = new Vector3())).set(x, 0, z);
+  return position;
+}
+
+export function walkTo(x, z, speed = 1.4, stop = 0.05) {
+  (state.walkTarget || (state.walkTarget = new Vector3())).copy(clampToWalkArea({ x, y: 0, z }));
   state.walkSpeed = speed;
   state.walkStop = stop;
 }
@@ -139,7 +145,7 @@ function spawnButterfly() {
   group.position.set(home.x + pick([-1, 1]) * rand(4, 6), 3.2, home.z - rand(4, 6));
   scene.add(group);
   state.butterfly = {
-    group, wings, mode: 'fly', t: 0, target: new Vector3(), retarget: 0, vel: new Vector3(),
+    group, texture, wings, mode: 'fly', t: 0, target: new Vector3(), retarget: 0, vel: new Vector3(),
     landAt: rand(7, 10), noticed: false, chaseRetarget: 0, landedT: 0,
   };
 }
@@ -181,6 +187,8 @@ function updateButterfly(dt) {
     fly.target.copy(fly.away);
     if (fly.t > 4.5) {
       scene.remove(fly.group);
+      disposeObject(fly.group, [inkMaterial]);
+      fly.texture.dispose();
       state.butterfly = null;
       return;
     }
@@ -408,6 +416,7 @@ export function boop(hit) {
 export function tapFloor(point) {
   if (!point || Math.hypot(point.x, point.z) > RUG_RADIUS) return;
   noteActivity();
+  clampToWalkArea(point);
   spawnRipple(point);
   if (state.mode === 'sleep') {
     say('zzz… 5 more minutes');
@@ -420,7 +429,7 @@ export function tapFloor(point) {
   }
   if (state.mode === 'idle' || state.mode === 'chase' || QUESTS.includes(state.mode)) {
     cancelQuest();
-    walkTo(point.x, point.z, 1.7, 0.25);
+    walkTo(point.x, point.z, 1.7);
     if (Math.random() < 0.6) {
       say(pick(state.photoMode ? ['here?', 'for the photo!', '📸 coming!'] : ['coming!', 'on my way!', '👀', 'wait for me!']));
     }
@@ -719,8 +728,7 @@ const SNEEZE_STEPS = [
     state.squashVel -= 7;
     hop(4);
     joltHat(16);
-    const recoil = new Vector3(Math.sin(yawGroup.rotation.y), 0, Math.cos(yawGroup.rotation.y)).multiplyScalar(-0.45);
-    root.position.add(recoil);
+    state.recoil.set(Math.sin(yawGroup.rotation.y), 0, Math.cos(yawGroup.rotation.y)).multiplyScalar(-0.45);
     sfx.achoo();
     for (let i = 0; i < 8; i++) {
       spawnSprite(pollenTexture, worldPoint(rand(-0.4, 0.4), 0.6, BODY_DEPTH / 2 + 0.2), {
@@ -760,7 +768,6 @@ function updateModeAnimation(dt, pose) {
     const progress = Math.min(1, modeTime / 0.75);
     root.rotation.y = easeOutCubic(progress) * Math.PI * 2;
     if (modeTime > 1.1) {
-      root.rotation.y = 0;
       setMode('idle');
       say('hmph.');
     }
@@ -854,6 +861,12 @@ function updateModeAnimation(dt, pose) {
   }
 }
 
+function updateRecoil(dt) {
+  const step = scratch.copy(state.recoil).multiplyScalar(1 - Math.exp(-12 * dt));
+  state.recoil.sub(step);
+  clampToWalkArea(root.position.add(step));
+}
+
 function updateCookie(dt) {
   const cookie = state.cookie;
   if (!cookie) return;
@@ -898,6 +911,7 @@ function updateCookie(dt) {
     }
     if (modeTime > 1.5) {
       scene.remove(group);
+      disposeObject(group);
       state.cookie = null;
       setMode('idle');
       state.happiness = Math.min(100, state.happiness + 25);
@@ -947,6 +961,7 @@ export function updateBehavior(dt) {
   updateFidgets(dt);
   updateQuests(dt);
   updateFollow(dt, clingy);
+  updateRecoil(dt);
   const canWalk = updateWalk(dt);
   updateFacing(dt, canWalk);
   const pose = { sway: 0, trip: 0, lean: 0 };

@@ -50,6 +50,7 @@ function onPointerMove(event) {
   const press = state.floorPress;
   if (press && event.pointerId === press.id) {
     press.moved = Math.max(press.moved, Math.hypot(event.clientX - press.x, event.clientY - press.y));
+    if (press.moved >= TAP_TRAVEL) noteActivity(); // Dragging the camera means someone is here.
   }
   const grab = state.grab;
   if (!grab) {

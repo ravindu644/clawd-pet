@@ -1,7 +1,7 @@
 // Clawd's body: the rig, what he wears, and how each part moves every frame.
 import { CircleGeometry, Group, Mesh, MeshBasicMaterial, PlaneGeometry, Vector2, Vector3 } from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { buildFace, buildHat } from './outfits.js';
+import { buildFace, buildHat, disposeOutfit } from './outfits.js';
 import { heartTexture } from './particles.js';
 import { clamp, damp, rand, save, state } from './state.js';
 import { canvasTexture, scene, standard } from './world.js';
@@ -131,6 +131,7 @@ body.add(faceSocket);
 let halo = null;
 
 export function wearHat(id) {
+  disposeOutfit(hatSocket);
   hatSocket.clear();
   const hat = buildHat(id);
   halo = hat.userData.halo || null;
@@ -138,6 +139,7 @@ export function wearHat(id) {
 }
 
 export function wearFace(id) {
+  disposeOutfit(faceSocket);
   faceSocket.clear();
   buildFace(id, faceSocket);
 }

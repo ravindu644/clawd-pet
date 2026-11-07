@@ -52,6 +52,7 @@ button.on{background:var(--ink);color:#fff}
 .sheet h4{font-size:11px;color:var(--muted);letter-spacing:.12em;margin:14px 0 8px}
 .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 5px 8px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .chips::-webkit-scrollbar{display:none}
+@media (hover:hover) and (pointer:fine){.chips{flex-wrap:wrap;overflow:visible}}
 .chip{flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 10px;min-width:66px;font-size:11px}
 .chip b{font-size:22px;line-height:1.1}
 .chip.sel{background:var(--orange);color:#fff}

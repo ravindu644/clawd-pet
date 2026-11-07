@@ -3,17 +3,29 @@ import { BoxGeometry, Mesh, MeshBasicMaterial, RingGeometry, Sprite, SpriteMater
 import { clamp, rand, state } from './state.js';
 import { canvasTexture, FLOOR_Y, scene, standard } from './world.js';
 
-const glyph = (text, color) =>
-  canvasTexture((g) => {
-    g.font = '800 96px "JetBrains Mono", monospace';
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    g.lineWidth = 10;
-    g.strokeStyle = '#fff';
-    g.strokeText(text, 64, 68);
-    g.fillStyle = color;
-    g.fillText(text, 64, 68);
+export const GLYPH_FONT = '800 96px "JetBrains Mono", monospace';
+
+export function drawGlyph(g, text, color) {
+  g.clearRect(0, 0, 128, 128);
+  g.font = GLYPH_FONT;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.lineWidth = 10;
+  g.strokeStyle = '#fff';
+  g.strokeText(text, 64, 68);
+  g.fillStyle = color;
+  g.fillText(text, 64, 68);
+}
+
+// Canvas text doesn't wait for web fonts, so each glyph is drawn again once the font has loaded.
+function glyph(text, color) {
+  const texture = canvasTexture((g) => drawGlyph(g, text, color));
+  document.fonts.load(GLYPH_FONT, text).then(() => {
+    drawGlyph(texture.image.getContext('2d'), text, color);
+    texture.needsUpdate = true;
   });
+  return texture;
+}
 
 export const heartTexture = canvasTexture((g) => {
   g.fillStyle = '#E8607A';

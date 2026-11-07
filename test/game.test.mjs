@@ -160,3 +160,165 @@ test('the speech bubble uses the camera from the frame being drawn', async () =>
   assert.ok(error < 0.01, `bubble was ${error.toFixed(2)}px off`);
   await page.context().close();
 });
+
+test('shaking him mid-spin does not leave him rotated', async () => {
+  const page = await openGame();
+  const yaw = await page.evaluate(() => {
+    const { root, setMode, shake } = __clawd;
+    setMode('spin');
+    __step(20);
+    shake();
+    __step(240);
+    return root.rotation.y;
+  });
+  assert.equal(yaw, 0);
+  await page.context().close();
+});
+
+test('a sneeze pushes him back smoothly and keeps him in the walk area', async () => {
+  const page = await openGame();
+  const result = await page.evaluate(() => {
+    const { root, startQuest, state, yawGroup } = __clawd;
+    state.nextFidget = 99;
+    root.position.set(0, 0, -2.1);
+    yawGroup.rotation.y = 0;
+    state.idleYaw = 0;
+    startQuest('sneeze');
+    let worstStep = 0;
+    let farthest = 0;
+    for (let i = 0; i < 180; i++) {
+      const { x, z } = root.position;
+      __step(1);
+      worstStep = Math.max(worstStep, Math.hypot(root.position.x - x, root.position.z - z));
+      farthest = Math.max(farthest, Math.hypot(root.position.x, root.position.z));
+    }
+    return { worstStep, farthest };
+  });
+  assert.ok(result.worstStep < 0.1, `moved ${result.worstStep.toFixed(2)} in one frame`);
+  assert.ok(result.farthest <= 2.2001, `reached radius ${result.farthest.toFixed(2)}`);
+  await page.context().close();
+});
+
+test('a tap near the rim shows the ripple where he will actually stop', async () => {
+  const page = await openGame({ viewport: { width: 1440, height: 900 } });
+  const tap = await page.evaluate(() => {
+    const { camera, root, state } = __clawd;
+    state.nextFidget = 99;
+    const point = root.position.clone().set(3.4, 0.06, 0.6).project(camera);
+    return { x: (point.x * 0.5 + 0.5) * innerWidth, y: (-point.y * 0.5 + 0.5) * innerHeight };
+  });
+  await page.mouse.move(tap.x, tap.y);
+  await page.mouse.down();
+  await page.mouse.up();
+  const result = await page.evaluate(() => {
+    const { root, scene } = __clawd;
+    const ripple = scene.children.find((child) => child.geometry?.type === 'RingGeometry' && child.material.isMeshBasicMaterial);
+    const spot = { x: ripple.position.x, z: ripple.position.z };
+    __step(240);
+    return { ripple: Math.hypot(spot.x, spot.z), gap: Math.hypot(root.position.x - spot.x, root.position.z - spot.z) };
+  });
+  assert.ok(result.ripple <= 2.2001, `ripple at radius ${result.ripple.toFixed(2)}`);
+  assert.ok(result.gap < 0.1, `he stopped ${result.gap.toFixed(2)} from the ripple`);
+  await page.context().close();
+});
+
+test('outfits, cookies and butterflies free their GPU memory', async () => {
+  const page = await openGame();
+  const memory = () => page.evaluate(() => ({ ...__clawd.renderer.info.memory }));
+  const before = await memory();
+  await page.evaluate(() => {
+    for (let i = 0; i < 20; i++) {
+      document.getElementById('randomFit').click();
+      __step(2);
+    }
+    __step(120);
+  });
+  const afterOutfits = await memory();
+  assert.ok(afterOutfits.geometries - before.geometries < 40, `outfits: ${before.geometries} to ${afterOutfits.geometries} geometries`);
+
+  // The first visit loads things that stay on purpose, like the crumb shape. After that nothing should grow.
+  const visit = () =>
+    page.evaluate(() => {
+      const { shake, startQuest, state } = __clawd;
+      document.getElementById('treatBtn').click();
+      __step(240);
+      startQuest('butterfly');
+      __step(30);
+      state.shakeCooldown = 0;
+      shake();
+      __step(300);
+    });
+  await visit();
+  const afterFirstVisit = await memory();
+  await visit();
+  await visit();
+  const afterVisits = await memory();
+  assert.deepEqual(afterVisits, afterFirstVisit);
+  await page.context().close();
+});
+
+test('glyph textures use the loaded font', async () => {
+  const page = await openGame();
+  const different = await page.evaluate(async () => {
+    const { drawGlyph, GLYPH_FONT, zzzTexture } = __clawd;
+    await document.fonts.load(GLYPH_FONT, 'z');
+    await new Promise(queueMicrotask);
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 128;
+    const g = canvas.getContext('2d');
+    drawGlyph(g, 'z', '#7A6A5A');
+    const expected = g.getImageData(0, 0, 128, 128).data;
+    const actual = zzzTexture.image.getContext('2d').getImageData(0, 0, 128, 128).data;
+    let count = 0;
+    for (let i = 3; i < actual.length; i += 4) if (Math.abs(actual[i] - expected[i]) > 40) count++;
+    return count;
+  });
+  assert.equal(different, 0);
+  await page.context().close();
+});
+
+test('dragging the camera counts as activity', async () => {
+  const page = await openGame();
+  await page.evaluate(() => (__clawd.state.nextQuest = 99));
+  await dragAround(page, 40);
+  const idleFor = await page.evaluate(() => __clawd.state.time - __clawd.state.lastActivity);
+  assert.ok(idleFor < 0.1, `idle timer read ${idleFor.toFixed(2)}s straight after dragging`);
+  await page.context().close();
+});
+
+test('rotating a phone to portrait keeps him in frame', async () => {
+  const page = await openGame({ viewport: { width: 844, height: 390 } });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const edges = await page.evaluate(() => {
+    const { camera, root, state } = __clawd;
+    state.nextFidget = 99;
+    state.nextQuest = 99;
+    root.position.set(2.2, 0, 0);
+    __step(240);
+    return [-1.6, 1.6].map((offset) => {
+      const point = root.position.clone().set(root.position.x + offset, 1, 0).project(camera);
+      return (point.x * 0.5 + 0.5) * innerWidth;
+    });
+  });
+  assert.ok(edges[0] >= 0 && edges[1] <= 390, `his sides are at ${edges.map(Math.round)} on a 390px screen`);
+  await page.context().close();
+});
+
+test('every wardrobe chip can be reached with a mouse', async () => {
+  const page = await openGame({ viewport: { width: 1000, height: 700 } });
+  await page.evaluate(() => {
+    document.getElementById('wearBtn').click();
+    document.body.getBoundingClientRect();
+    return Promise.all(document.getAnimations().map((animation) => animation.finished));
+  });
+  const unreachable = await page.evaluate(() =>
+    [...document.querySelectorAll('#wearSheet .chip')]
+      .filter((chip) => {
+        const box = chip.getBoundingClientRect();
+        return !chip.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2));
+      })
+      .map((chip) => chip.textContent),
+  );
+  assert.deepEqual(unreachable, []);
+  await page.context().close();
+});
